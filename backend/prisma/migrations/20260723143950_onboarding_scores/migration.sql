@@ -1,0 +1,10 @@
+-- AlterTable
+ALTER TABLE "user_profiles" ADD COLUMN     "mentorBrief" TEXT,
+ADD COLUMN     "onboarded" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "quizTimeSeconds" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "scoreConsistency" INTEGER NOT NULL DEFAULT 50,
+ADD COLUMN     "scoreFormula" INTEGER NOT NULL DEFAULT 50,
+ADD COLUMN     "scoreObservation" INTEGER NOT NULL DEFAULT 50,
+ADD COLUMN     "scoreOptimization" INTEGER NOT NULL DEFAULT 50,
+ADD COLUMN     "scorePattern" INTEGER NOT NULL DEFAULT 50,
+ADD COLUMN     "scoreSpeed" INTEGER NOT NULL DEFAULT 50;

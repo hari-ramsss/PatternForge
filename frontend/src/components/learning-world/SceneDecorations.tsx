@@ -1,0 +1,1 @@
+export function SceneDecorations() { return <g opacity=".7"><g transform="translate(160 560)"><path d="M0 40h9V0h55v40h9l-8 18H8Z" fill="#a66b3d"/><path d="M-2 11h72v8H-2zM-2 29h72v8H-2z" fill="#d29251"/></g><g fill="#789b78"><ellipse cx="321" cy="655" rx="26" ry="9"/><ellipse cx="845" cy="688" rx="32" ry="11"/><ellipse cx="1080" cy="635" rx="22" ry="8"/></g></g>; }

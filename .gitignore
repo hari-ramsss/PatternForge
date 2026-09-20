@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# NestJS build output
+dist/
+
+# Env files
+.env
+.env.local
+.env.production
+.env.*.local
+
+# IDEs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Docker local data volumes
+pgdata/
+redisdata/
+
+# Local project notes and visual scratch files
+.agents/
+scratch/
+startup.txt
+masterprompt.txt
+screen*.txt
+
+# Local change notes are not release documentation
+changes.md
+
+# Local source asset; the normalized public cursor asset is tracked instead
+minimal-monstera-cursor-pack.png
+
+# Test and coverage output
+coverage/
+*.log
+
+# Local database and Prisma artifacts
+*.db
+*.sqlite
+backend/prisma/generated/
+
+Architecture-docs/

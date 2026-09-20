@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: patternforge-postgres
+    environment:
+      POSTGRES_DB: patternforge_db
+      POSTGRES_PASSWORD: postgres_secure_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    networks:
+      - app-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: patternforge-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - app-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: patternforge-backend
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres_secure_pass@postgres:5432/patternforge_db?schema=public"
+      REDIS_URL: "redis://redis:6379"
+      JUDGE0_URL: "http://judge0:8000"
+      JWT_SECRET: "jwt_super_secure_secret_key"
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: patternforge-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:4000/api"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - app-net
+
+  judge0:
+    image: judge0/judge0:latest
+    container_name: patternforge-judge0
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=judge0-redis
+      - REDIS_PORT=6379
+      # Connect to the main postgres container but use a separate DB
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres_secure_pass
+      - POSTGRES_DB=judge0_db
+    depends_on:
+      - postgres
+      - judge0-redis
+    networks:
+      - app-net
+      - sandbox-net
+
+  judge0-redis:
+    image: redis:7-alpine
+    container_name: patternforge-judge0-redis
+    networks:
+      - sandbox-net
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  app-net:
+    driver: bridge
+  sandbox-net:
+    driver: bridge
+    internal: true

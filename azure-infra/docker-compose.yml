@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: patternforge-postgres
+    environment:
+      POSTGRES_DB: patternforge_db
+      POSTGRES_PASSWORD: postgres_secure_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: patternforge-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    command: redis-server --requirepass redis_secure_pass
+    restart: always
+
+  judge0-server:
+    image: judge0/judge0:latest
+    container_name: patternforge-judge0-server
+    ports:
+      - "8000:2358"
+    environment:
+      - REDIS_HOST=judge0-redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres_secure_pass
+      - POSTGRES_DB=judge0_db
+    privileged: true
+    restart: always
+    depends_on:
+      - postgres
+      - judge0-redis
+
+  judge0-worker:
+    image: judge0/judge0:latest
+    container_name: patternforge-judge0-worker
+    command: ["./scripts/workers"]
+    environment:
+      - REDIS_HOST=judge0-redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres_secure_pass
+      - POSTGRES_DB=judge0_db
+    privileged: true
+    restart: always
+    depends_on:
+      - postgres
+      - judge0-redis
+
+  judge0-redis:
+    image: redis:7-alpine
+    container_name: patternforge-judge0-redis
+    restart: always
+
+volumes:
+  pgdata:
+  redisdata:

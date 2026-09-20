@@ -1,0 +1,202 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum VerdictStatus {
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  MEMORY_LIMIT_EXCEEDED
+  COMPILATION_ERROR
+  RUNTIME_ERROR
+  PENDING
+}
+
+model User {
+  id            String            @id @default(uuid())
+  email         String            @unique
+  passwordHash  String
+  role          Role              @default(USER)
+  createdAt     DateTime          @default(now())
+  profile       UserProfile?
+  sessions      LearningSession[]
+  drafts        CodeDraft[]
+  submissions   Submission[]
+  patternCards  PatternCard[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetCompanies    String[] // e.g., ["Google", "Amazon"]
+  preferredLanguage  String   @default("python") // python, java, cpp, javascript
+  daysToInterview    Int      @default(90)
+  onboarded          Boolean  @default(false)
+  scorePattern       Int      @default(50)
+  scoreObservation   Int      @default(50)
+  scoreFormula       Int      @default(50)
+  scoreOptimization  Int      @default(50)
+  scoreSpeed         Int      @default(50)
+  scoreConsistency   Int      @default(50)
+  quizTimeSeconds    Int      @default(0)
+  mentorBrief        String?  @db.Text
+  customCurriculum   Json?
+  createdAt          DateTime @default(now())
+
+  @@map("user_profiles")
+}
+
+model Problem {
+  id             String              @id @default(uuid())
+  title          String
+  description    String              @db.Text
+  difficulty     String              // EASY, MEDIUM, HARD
+  topic          String              @default("arrays") // arrays, two-pointers, trees, dp
+  subtopic       String?             // e.g. In-Place Partitioning; set for journey-generated practice
+  timeLimit      Float               @default(2.0) // in seconds
+  memoryLimit    Int                 @default(256) // in megabytes
+  optimalTime    String              // e.g. "O(N)"
+  optimalSpace   String              // e.g. "O(1)"
+  createdAt      DateTime            @default(now())
+  examples       ProblemExample[]
+  constraints    ProblemConstraint[]
+  starterCodes   StarterCode[]
+  testCases      TestCase[]
+  sessions       LearningSession[]
+  drafts         CodeDraft[]
+  submissions    Submission[]
+
+  @@map("problems")
+}
+
+model ProblemExample {
+  id          String   @id @default(uuid())
+  problemId   String
+  problem     Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  input       String   @db.Text
+  output      String   @db.Text
+  explanation String?  @db.Text
+
+  @@map("problem_examples")
+}
+
+model ProblemConstraint {
+  id          String   @id @default(uuid())
+  problemId   String
+  problem     Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  statement   String   @db.Text
+
+  @@map("problem_constraints")
+}
+
+model StarterCode {
+  id          String   @id @default(uuid())
+  problemId   String
+  problem     Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  language    String   // python, java, cpp, javascript
+  boilerplate String   @db.Text
+
+  @@unique([problemId, language])
+  @@map("starter_codes")
+}
+
+model TestCase {
+  id          String   @id @default(uuid())
+  problemId   String
+  problem     Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  input       String   @db.Text
+  expected    String   @db.Text
+  isPublic    Boolean  @default(false) // True if visible as sample tests
+
+  @@map("test_cases")
+}
+
+model CodeDraft {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId   String
+  problem     Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  language    String
+  code        String   @db.Text
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, problemId, language])
+  @@map("code_drafts")
+}
+
+model Submission {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId     String
+  problem       Problem       @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  code          String        @db.Text
+  language      String
+  status        VerdictStatus @default(PENDING)
+  judgeToken    String?       // Token returned from Judge0 sandbox
+  runtime       Float?        // Execution time in seconds
+  memory        Int?          // Memory usage in KB
+  stdout        String?       @db.Text
+  stderr        String?       @db.Text
+  createdAt     DateTime      @default(now())
+
+  @@map("submissions")
+}
+
+model LearningSession {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId String
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("learning_sessions")
+}
+
+model TelemetryLog {
+  id        String   @id @default(uuid())
+  userId    String
+  problemId String
+  eventType String   // e.g. "keystroke", "scroll", "phase_transition", "bypass_lockout"
+  eventData String   @db.Text // JSON metrics (thinking times, key pauses)
+  createdAt DateTime @default(now())
+
+  @@map("telemetry_logs")
+}
+
+model PatternCard {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId     String?
+  problemTitle  String
+  patternName   String
+  clues         String   @db.Text
+  invariants    String   @db.Text
+  codeSnippet   String   @db.Text
+  optimalTime   String   @default("O(N)")
+  optimalSpace  String   @default("O(1)")
+  easeFactor    Float    @default(2.5)
+  interval      Int      @default(1)
+  repetitions   Int      @default(0)
+  dueDate       DateTime @default(now())
+  lastReviewed  DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@map("pattern_cards")
+}
