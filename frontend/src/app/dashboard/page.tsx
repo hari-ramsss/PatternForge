@@ -528,15 +528,33 @@ export default function PatternForgeHomePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#080c14] flex flex-col items-center justify-center font-sans text-slate-300 space-y-4">
+      <div className="min-h-screen bg-[#f8f5ed] flex flex-col items-center justify-center font-sans text-[#17263a] space-y-7">
+        {/* Bouncing PatternForge flame, same tile as the sidebar brand */}
         <motion.div
-          animate={{ rotate: 360, scale: [1, 1.1, 1] }}
-          transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-          className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-slate-950 font-black text-xl shadow-xl shadow-amber-500/25"
+          animate={{ y: [0, -12, 0], rotate: [-2, 2, -2] }}
+          transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}
+          className="w-20 h-20 rounded-[26px] border-2 border-b-[6px] border-orange-600/40 bg-gradient-to-tr from-orange-500 to-amber-300 flex items-center justify-center text-white"
         >
-          P
+          <Flame className="w-11 h-11 fill-white" />
         </motion.div>
-        <p className="font-semibold text-sm text-slate-300 tracking-wide font-mono">Loading PatternForge Journey...</p>
+        <div className="text-center space-y-1.5">
+          <p className="text-3xl font-black tracking-tight">Pattern<span className="text-[#e67b1f]">Forge</span></p>
+          <motion.p
+            animate={{ opacity: [0.45, 1, 0.45] }}
+            transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}
+            className="text-xs font-extrabold uppercase tracking-[.2em] text-slate-400"
+          >
+            Forging your journey
+          </motion.p>
+        </div>
+        {/* Chunky Duolingo-style shimmer bar */}
+        <div className="w-60 h-5 rounded-full border-2 border-b-4 border-[#e8e1d3] bg-white p-[3px] overflow-hidden">
+          <motion.div
+            animate={{ x: ['-110%', '320%'] }}
+            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+            className="h-full w-1/3 rounded-full bg-gradient-to-r from-amber-400 to-orange-500"
+          />
+        </div>
       </div>
     );
   }
@@ -551,7 +569,7 @@ export default function PatternForgeHomePage() {
   return (
     <div className="h-screen bg-[#f8f5ed] text-[#17263a] font-sans flex overflow-hidden antialiased selection:bg-amber-500/30 selection:text-amber-900">
       {/* ================= LEFT SIDEBAR (240px) ================= */}
-      <aside className="w-64 bg-[#fffdf8] border-r border-[#e8e1d3] flex flex-col justify-between p-6 shrink-0 sticky top-0 h-screen z-30">
+      <aside className="w-64 bg-[#fffdf8] border-r-2 border-[#e8e1d3] flex flex-col justify-between p-6 shrink-0 sticky top-0 h-screen z-30">
         <div className="space-y-8">
           {/* PatternForge Brand Header with subtle hover bounce */}
           <motion.div
@@ -559,7 +577,7 @@ export default function PatternForgeHomePage() {
             className="flex items-center gap-2.5 px-1 cursor-pointer"
             onClick={() => router.push('/dashboard')}
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-300 flex items-center justify-center text-white shadow-lg shadow-amber-500/20">
+            <div className="w-9 h-9 rounded-xl border-2 border-b-4 border-orange-600/40 bg-gradient-to-tr from-orange-500 to-amber-300 flex items-center justify-center text-white">
               <Flame className="w-5 h-5 fill-white" />
             </div>
             <span className="text-xl font-black tracking-tight text-[#17263a]">
@@ -568,7 +586,7 @@ export default function PatternForgeHomePage() {
           </motion.div>
 
           {/* Navigation Items with Framer Motion layoutId Active Pill */}
-          <nav className="space-y-1.5">
+          <nav className="space-y-2.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeNav === item.id;
@@ -581,14 +599,14 @@ export default function PatternForgeHomePage() {
                       router.push(item.path);
                     }
                   }}
-                  className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-colors z-10 ${
+                  className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-extrabold uppercase tracking-wide transition-colors z-10 ${
                     isActive ? 'text-[#9b5416]' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="activeNavPill"
-                      className="absolute inset-0 rounded-xl bg-[#fff0c9] border border-[#f7d786] shadow-sm -z-10"
+                      className="absolute inset-0 rounded-2xl bg-[#fff0c9] border-2 border-b-4 border-[#f0cd7a] -z-10"
                       transition={{ type: 'spring', stiffness: 450, damping: 32 }}
                     />
                   )}
@@ -602,8 +620,8 @@ export default function PatternForgeHomePage() {
 
         {/* Bottom User Profile & Streak Widget */}
         <div className="space-y-3.5">
-          <div className="bg-white border border-[#e8e1d3] rounded-2xl p-4 space-y-3 shadow-sm">
-            <div className="flex items-center justify-between text-xs text-slate-700 font-semibold">
+          <div className="bg-white border-2 border-b-4 border-[#e8e1d3] rounded-3xl p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs text-slate-700 font-extrabold uppercase tracking-wide">
               <span className="flex items-center gap-2">
                 <motion.span
                   animate={{ scale: [1, 1.18, 1], rotate: [-4, 4, -4] }}
@@ -614,21 +632,21 @@ export default function PatternForgeHomePage() {
                 </motion.span>
                 7 Day Streak
               </span>
-              <span className="text-[#c56a17] font-mono text-[10px] font-bold bg-[#fff1d5] border border-[#f6d89b] px-2 py-0.5 rounded-full">
+              <span className="text-[#c56a17] font-mono text-[10px] font-bold bg-[#fff1d5] border-2 border-[#f6d89b] px-2 py-0.5 rounded-full">
                 Active
               </span>
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-500 border-t border-[#eee7da] pt-2.5">
+            <div className="flex items-center justify-between text-xs text-slate-500 border-t-2 border-[#eee7da] pt-2.5">
               <span>Total XP</span>
-              <span className="font-mono font-bold text-[#d97717] text-sm">
+              <span className="font-black text-[#d97717] text-sm">
                 {currentXp} XP
               </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white border border-[#e8e1d3] hover:border-[#d9cba8] transition">
+          <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white border-2 border-b-4 border-[#e8e1d3] hover:border-[#d9cba8] transition">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 flex items-center justify-center text-xs font-black shadow-md shadow-amber-500/20">
+              <div className="w-7 h-7 rounded-full border-2 border-b-4 border-amber-600/50 bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 flex items-center justify-center text-xs font-black">
                 {userName.charAt(0)}
               </div>
               <span className="text-xs font-bold text-slate-700 truncate max-w-[120px]">{userName}</span>
@@ -641,7 +659,7 @@ export default function PatternForgeHomePage() {
       {/* ================= MAIN CONTENT AREA ================= */}
       <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
         {/* Top Header Bar with Frosted Glassmorphism */}
-        <header className="py-4 px-8 flex items-center justify-between bg-[#fffdf8]/90 border-b border-[#e8e1d3] backdrop-blur-xl shrink-0 z-20">
+        <header className="py-4 px-8 flex items-center justify-between bg-[#fffdf8]/90 border-b-2 border-[#e8e1d3] backdrop-blur-xl shrink-0 z-20">
           <div>
             <h1 className="text-lg font-black text-[#17263a] flex items-center gap-2 tracking-tight">
               Good morning, {userName}.
@@ -656,7 +674,7 @@ export default function PatternForgeHomePage() {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => router.push('/dashboard/creator')}
-              className="px-4 py-2 bg-white hover:bg-[#fffaf0] border border-[#e3d8c8] text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+              className="px-4 py-2 bg-white hover:bg-[#fffaf0] border-2 border-b-4 border-[#e3d8c8] text-slate-700 rounded-2xl text-xs font-extrabold uppercase tracking-wide transition-all active:translate-y-[2px] active:border-b-2 flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4 text-amber-400" />
               <span>AI Problem Creator</span>
@@ -666,7 +684,7 @@ export default function PatternForgeHomePage() {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => router.push('/interview-arena')}
-              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-lg shadow-amber-500/25"
+              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 border-2 border-b-4 border-amber-600/70 text-slate-950 rounded-2xl text-xs font-black uppercase tracking-wide transition-all active:translate-y-[2px] active:border-b-2 flex items-center gap-1.5"
             >
               <Flag className="w-4 h-4 fill-slate-950" />
               <span>Launch OA Arena</span>

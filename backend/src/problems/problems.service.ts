@@ -38,6 +38,7 @@ export class ProblemsService {
 
   async findOne(id: string) {
     let problem: any = null;
+    const requestedSlug = this.toProblemSlug(id);
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (uuidRegex.test(id)) {
@@ -61,9 +62,7 @@ export class ProblemsService {
           testCases: true,
         },
       });
-      problem = allProblems.find(
-        (p) => p.title.toLowerCase().replace(/\s+/g, '-') === id.toLowerCase()
-      );
+      problem = allProblems.find((p) => this.toProblemSlug(p.title) === requestedSlug);
     }
 
     if (!problem) {
@@ -93,6 +92,16 @@ export class ProblemsService {
 
     problem.description = this.cleanDescription(problem.description);
     return problem;
+  }
+
+  private toProblemSlug(value: string): string {
+    return value
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 
   private cleanDescription(desc: string): string {

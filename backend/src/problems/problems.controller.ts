@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Delete, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Param, Post, Delete, Body, UseGuards, Request, NotFoundException } from '@nestjs/common';
 import { ProblemsService } from './problems.service';
 import { LeetcodeSyncService } from './leetcode-sync.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -35,7 +35,17 @@ export class ProblemsController {
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    return this.problemsService.findOne(id);
+    try {
+      return await this.problemsService.findOne(id);
+    } catch (error) {
+      if (!(error instanceof NotFoundException)) throw error;
+
+      try {
+        return await this.leetcodeSyncService.syncProblem(id);
+      } catch {
+        throw error;
+      }
+    }
   }
 
   @Delete(':id')
