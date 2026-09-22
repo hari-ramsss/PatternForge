@@ -72,14 +72,33 @@ model Problem {
   optimalSpace   String              // e.g. "O(1)"
   createdAt      DateTime            @default(now())
   examples       ProblemExample[]
+  visualDiagrams ProblemVisualDiagram[]
   constraints    ProblemConstraint[]
   starterCodes   StarterCode[]
   testCases      TestCase[]
   sessions       LearningSession[]
   drafts         CodeDraft[]
   submissions    Submission[]
+  canonicalForSubtopics CurriculumSubtopic[] @relation("CanonicalProblem")
 
   @@map("problems")
+}
+
+model CurriculumSubtopic {
+  id                 String   @id @default(uuid())
+  topic              String
+  title              String
+  sortOrder          Int
+  canonicalSlug      String?
+  canonicalTitle     String?
+  canonicalProblemId String?
+  canonicalProblem   Problem? @relation("CanonicalProblem", fields: [canonicalProblemId], references: [id], onDelete: SetNull)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([topic, title])
+  @@index([topic, sortOrder])
+  @@map("curriculum_subtopics")
 }
 
 model ProblemExample {
@@ -89,8 +108,26 @@ model ProblemExample {
   input       String   @db.Text
   output      String   @db.Text
   explanation String?  @db.Text
+  visualDiagram ProblemVisualDiagram?
 
   @@map("problem_examples")
+}
+
+model ProblemVisualDiagram {
+  id          String         @id @default(uuid())
+  problemId   String
+  exampleId   String         @unique
+  problem     Problem        @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  example     ProblemExample @relation(fields: [exampleId], references: [id], onDelete: Cascade)
+  kind        String
+  label       String
+  mermaid     String         @db.Text
+  visualData  Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([problemId, exampleId])
+  @@map("problem_visual_diagrams")
 }
 
 model ProblemConstraint {

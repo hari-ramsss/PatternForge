@@ -107,10 +107,6 @@ textarea:disabled,
   animation: pulseGlow 2.5s infinite ease-in-out;
 }
 
-[aria-label="Your learning journey"] {
-  min-height: 3200px;
-}
-
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

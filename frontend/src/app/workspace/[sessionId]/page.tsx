@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useEditorStore } from '../../../features/workspace/useEditorStore';
 import { useSessionStore } from '../../../features/workspace/useSessionStore';
@@ -11,7 +12,8 @@ import SolutionPathAnalyzer from '../../../features/workspace/components/Solutio
 import VocalTranscriptDrawer from '../../../features/workspace/components/VocalTranscriptDrawer';
 import AiVoiceInterviewer from '../../../features/workspace/components/AiVoiceInterviewer';
 import DeleteConfirmationModal from '../../../features/workspace/components/DeleteConfirmationModal';
-import { Play, Send, ChevronDown, CheckCircle, AlertTriangle, Cpu, Clock, RefreshCw, Sparkles, BookOpen, BrainCircuit, Activity, Unlock, Lock, Plus, Trash2, Code2, Award, Mic, Bot } from 'lucide-react';
+import { createDiagramDefinition, type DiagramDefinition } from '../../../features/workspace/diagram-utils';
+import { Play, Send, ChevronDown, CheckCircle, AlertTriangle, Cpu, Clock, RefreshCw, Sparkles, BookOpen, BrainCircuit, Activity, Unlock, Lock, Plus, Trash2, Code2, Award, Mic, Bot, Timer } from 'lucide-react';
 
 interface Example {
   id: string;
@@ -51,6 +53,11 @@ interface Problem {
   constraints: Constraint[];
   starterCodes: StarterCode[];
   testCases: TestCase[];
+}
+
+interface SavedDiagram extends DiagramDefinition {
+  id: string;
+  exampleId: string;
 }
 
 function FormatCoachMessage({ content }: { content: string }) {
@@ -121,6 +128,9 @@ function FormatCoachMessage({ content }: { content: string }) {
 
 function formatInlineText(text: string) {
   if (!text) return '';
+
+  const highlightKeywords = /\b(valid|invalid|subarray|array|index|length|maximum|minimum|constraint|constraints|return|output|input|target|sum|difference|prefix|suffix|window|optimal|complexity|result|value|values)\b/gi;
+
   const codeParts = text.split(/(`[^`]+`)/g);
   return codeParts.map((cp, idx) => {
     if (cp.startsWith('`') && cp.endsWith('`')) {
@@ -146,16 +156,103 @@ function formatInlineText(text: string) {
         if (ip.startsWith('*') && ip.endsWith('*')) {
           return <em key={iIdx} className="italic text-stone-700">{ip.slice(1, -1)}</em>;
         }
-        return ip;
+
+        const keywordParts = ip.split(highlightKeywords);
+        return keywordParts.map((segment, segIdx) => {
+          if (segment && segment.match(highlightKeywords)) {
+            return (
+              <span
+                key={`${iIdx}-${segIdx}`}
+                className="rounded bg-amber-100 px-1 py-0.5 font-semibold text-amber-900 shadow-[inset_0_0_0_1px_rgba(217,119,6,0.12)]"
+              >
+                {segment}
+              </span>
+            );
+          }
+          return <React.Fragment key={`${iIdx}-${segIdx}`}>{segment}</React.Fragment>;
+        });
       });
     });
   });
+}
+
+function VisualLearningPanel({ diagram }: { diagram: DiagramDefinition }) {
+  const data = diagram.visualData ?? {};
+  const mode = data.mode;
+
+  if (mode === 'rain-water') {
+    const heights = (data.heights as number[]) ?? [];
+    const trapped = (data.trapped as number[]) ?? [];
+    const leftMax = (data.leftMax as number[]) ?? [];
+    const rightMax = (data.rightMax as number[]) ?? [];
+    const maxHeight = Math.max(...heights, 1);
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold text-stone-600">
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-stone-700" /> wall</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-sky-400" /> trapped water</span>
+          <span className="ml-auto rounded-full bg-sky-50 px-2.5 py-1 text-sky-800">Total: {String(data.total ?? 0)} units</span>
+        </div>
+        <div className="overflow-x-auto rounded-xl border border-sky-100 bg-sky-50/40 p-3">
+          <div className="flex min-w-[34rem] items-end gap-1.5" style={{ height: 190 }}>
+            {heights.map((height, index) => (
+              <div key={index} className="flex min-w-8 flex-1 flex-col items-center justify-end gap-1">
+                <div className="flex w-full flex-col justify-end" style={{ height: 150 }}>
+                  <div className="w-full rounded-t-md bg-sky-300" style={{ height: `${(trapped[index] / maxHeight) * 100}%`, minHeight: trapped[index] ? 5 : 0 }} />
+                  <div className="w-full rounded-t-sm bg-stone-700" style={{ height: `${(height / maxHeight) * 100}%`, minHeight: height ? 5 : 0 }} />
+                </div>
+                <span className="font-mono text-[10px] text-stone-500">{index}</span>
+                <span className="font-mono text-[10px] font-bold text-stone-800">{height}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-stone-600 sm:grid-cols-4">
+          {heights.map((height, index) => (
+            <div key={index} className="rounded-lg border border-stone-200 bg-white px-2 py-1.5">
+              <span className="font-bold text-stone-900">i{index}</span> L:{leftMax[index]} R:{rightMax[index]} W:{trapped[index]}
+            </div>
+          ))}
+        </div>
+        <p className="text-xs leading-relaxed text-stone-600">{String(data.explanation)}</p>
+      </div>
+    );
+  }
+
+  if (mode === 'two-pointer' || mode === 'sliding-window') {
+    const values = (data.values as number[]) ?? [];
+    const pointers = (data.pointers as { left: number; right: number } | undefined) ?? (data.window as { left: number; right: number } | undefined);
+    return (
+      <div className="space-y-4">
+        <div className="overflow-x-auto rounded-xl border border-amber-100 bg-amber-50/40 p-4">
+          <div className="flex min-w-[30rem] gap-2">
+            {values.map((value, index) => {
+              const isActive = pointers && index >= pointers.left && index <= pointers.right;
+              return <div key={index} className={`relative flex h-14 min-w-12 flex-1 items-center justify-center rounded-lg border-2 font-mono text-sm font-bold ${isActive ? 'border-amber-500 bg-amber-100 text-amber-900' : 'border-stone-200 bg-white text-stone-600'}`}><span className="absolute -top-4 text-[10px] font-normal text-stone-400">{index}</span>{value}</div>;
+            })}
+          </div>
+          <div className="mt-4 flex justify-between text-[11px] font-bold text-amber-800">
+            <span>{mode === 'two-pointer' ? 'left pointer' : 'window left'}</span>
+            <span>{mode === 'two-pointer' ? 'right pointer' : 'window right'}</span>
+          </div>
+        </div>
+        <p className="text-xs leading-relaxed text-stone-600">{String(data.explanation)}</p>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export default function WorkspacePage({ params: paramsPromise }: { params: Promise<{ sessionId: string }> }) {
   const params = use(paramsPromise);
   const sessionId = params.sessionId;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isOaMode = searchParams.get('oa') === 'true';
+  const oaCompany = searchParams.get('company') || 'Corporate Assessment';
+  const oaDurationMinutes = Math.max(1, Number(searchParams.get('duration') || 45));
+  const oaVoiceEnabled = searchParams.get('voice') === 'true';
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -165,7 +262,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
   }, [router]);
 
   // For Phase 1, we treat the sessionId as problemId for simplicity in mock queries
-  const problemId = sessionId; 
+  const problemId = sessionId;
 
   const { code, language, isCompiling, verdict, setCode, setLanguage, setCompiling, setVerdict, editorRef } = useEditorStore();
   const { currentPhase, setCurrentPhase } = useSessionStore();
@@ -253,10 +350,27 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
   const [loadTime] = useState(Date.now());
   const [vocalTranscript, setVocalTranscript] = useState('');
   const [isEvaluatingOa, setIsEvaluatingOa] = useState(false);
-  const [showVoiceInterview, setShowVoiceInterview] = useState(false);
+  const [showVoiceInterview, setShowVoiceInterview] = useState(oaVoiceEnabled);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingProblem, setIsDeletingProblem] = useState(false);
+  const [selectedExampleId, setSelectedExampleId] = useState<string | null>(null);
+  const [activeDiagram, setActiveDiagram] = useState<DiagramDefinition | null>(null);
+  const [savedDiagrams, setSavedDiagrams] = useState<SavedDiagram[]>([]);
+  const [isRenderingDiagram, setIsRenderingDiagram] = useState(false);
+  const [isSavingDiagram, setIsSavingDiagram] = useState(false);
+  const diagramRef = useRef<HTMLDivElement>(null);
   const [showSkillJump, setShowSkillJump] = useState(false);
+  const [oaSecondsRemaining, setOaSecondsRemaining] = useState(oaDurationMinutes * 60);
+
+  useEffect(() => {
+    if (!isOaMode || oaSecondsRemaining <= 0) return;
+    const interval = window.setInterval(() => {
+      setOaSecondsRemaining((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [isOaMode, oaSecondsRemaining]);
+
+  const oaTimeLabel = `${String(Math.floor(oaSecondsRemaining / 60)).padStart(2, '0')}:${String(oaSecondsRemaining % 60).padStart(2, '0')}`;
 
   const handleAddCustomCase = () => {
     const newCase = {
@@ -283,7 +397,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
 
   const [phaseStartTime, setPhaseStartTime] = useState<number>(Date.now());
   const prevPhaseRef = useRef<string>(currentPhase);
-  
+
   const keystrokeCountRef = useRef<number>(0);
   const lastKeyPressTimeRef = useRef<number>(Date.now());
   const keyIntervalsSumRef = useRef<number>(0);
@@ -459,7 +573,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
   }, [currentPhase, readingTimeRemaining]);
 
   // Activate autosave draft caching loops
-  useAutosave(problemId);
+  useAutosave(`${isOaMode ? 'oa' : 'practice'}:${problemId}`);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
@@ -469,9 +583,89 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
     queryFn: async () => {
       const res = await fetch(`${apiUrl}/problems/${problemId}`);
       if (!res.ok) throw new Error('Problem not found');
-      return res.json();
+      const data = await res.json();
+      // AI-generated problems may come back without examples/constraints/test
+      // cases — normalize so render-time .map/.find calls never crash.
+      return {
+        ...data,
+        examples: Array.isArray(data.examples) ? data.examples : [],
+        constraints: Array.isArray(data.constraints) ? data.constraints : [],
+        testCases: Array.isArray(data.testCases) ? data.testCases : [],
+        starterCodes: Array.isArray(data.starterCodes) ? data.starterCodes : [],
+      };
     },
   });
+
+  useEffect(() => {
+    if (!problem?.examples?.length) return;
+    setSelectedExampleId((current) => current ?? problem.examples[0].id);
+  }, [problem]);
+
+  useEffect(() => {
+    if (!problem?.id) return;
+    const loadSavedDiagrams = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/problems/${encodeURIComponent(problem.id)}/diagrams`);
+        if (!response.ok) return;
+        setSavedDiagrams(await response.json());
+      } catch (diagramError) {
+        console.error('Failed to load saved diagrams:', diagramError);
+      }
+    };
+    loadSavedDiagrams();
+  }, [apiUrl, problem?.id]);
+
+  useEffect(() => {
+    if (!activeDiagram || !diagramRef.current) return;
+    let cancelled = false;
+    if (activeDiagram.visualData?.mode === 'rain-water' || activeDiagram.visualData?.mode === 'two-pointer' || activeDiagram.visualData?.mode === 'sliding-window') {
+      setIsRenderingDiagram(false);
+      return () => { cancelled = true; };
+    }
+    const renderDiagram = async () => {
+      setIsRenderingDiagram(true);
+      try {
+        const mermaid = (await import('mermaid')).default;
+        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', themeVariables: { primaryColor: '#fff1c2', lineColor: '#b45309', primaryTextColor: '#292524' } });
+        const renderId = `diagram-${Date.now()}`;
+        const rendered = await mermaid.render(renderId, activeDiagram.mermaid);
+        if (!cancelled && diagramRef.current) diagramRef.current.innerHTML = rendered.svg;
+      } catch (diagramError) {
+        if (!cancelled && diagramRef.current) diagramRef.current.textContent = 'This example could not be rendered as a diagram.';
+        console.error('Failed to render diagram:', diagramError);
+      } finally {
+        if (!cancelled) setIsRenderingDiagram(false);
+      }
+    };
+    renderDiagram();
+    return () => { cancelled = true; };
+  }, [activeDiagram]);
+
+  const handleVisualizeExample = (example: Example) => {
+    setSelectedExampleId(example.id);
+    const saved = savedDiagrams.find((diagram) => diagram.exampleId === example.id);
+    setActiveDiagram(saved ?? createDiagramDefinition(problem?.title ?? '', example.input, example.explanation));
+  };
+
+  const handleSaveDiagram = async () => {
+    if (!problem?.id || !selectedExampleId || !activeDiagram) return;
+    setIsSavingDiagram(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${apiUrl}/problems/${encodeURIComponent(problem.id)}/diagrams`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ exampleId: selectedExampleId, ...activeDiagram }),
+      });
+      if (!response.ok) throw new Error('Unable to save diagram');
+      const saved = await response.json();
+      setSavedDiagrams((current) => [...current.filter((diagram) => diagram.exampleId !== saved.exampleId), saved]);
+    } catch (diagramError) {
+      console.error('Failed to save diagram:', diagramError);
+    } finally {
+      setIsSavingDiagram(false);
+    }
+  };
 
   const [leftTab, setLeftTab] = useState<'problem' | 'analytics' | 'coach'>('problem');
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'coach'; content: string }>>([
@@ -610,23 +804,23 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
             if (timeElapsed < 300) { // solved under 5 minutes
               setShowSkillJump(true);
               setAnimationStep(1); // Success Banner & Confetti
-              
+
               setTimeout(() => {
                 setAnimationStep(2); // Card Flip & Shimmer Border
               }, 450);
-              
+
               setTimeout(() => {
                 setAnimationStep(3); // Energy Particle Transfer
               }, 1100);
-              
+
               setTimeout(() => {
                 setAnimationStep(4); // Mastery Progress Bar Fill
               }, 1900);
-              
+
               setTimeout(() => {
                 setAnimationStep(5); // Category Node Pulse & Counter Increment
               }, 2500);
-              
+
               setTimeout(() => {
                 setAnimationStep(6); // Light Up Connector & Next Node Grow
               }, 3100);
@@ -818,187 +1012,167 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#FAF8F5]">
+    <div className="min-h-screen lg:h-screen flex flex-col overflow-hidden bg-[#f8f5ed] text-[#17263a]">
       {/* Workspace Header */}
-      <header className="h-14 border-b border-[#EFECE6] bg-white flex items-center justify-between px-6 shrink-0 z-10">
-        <div className="flex items-center gap-4">
-          <span
-            onClick={() => router.push('/dashboard')}
-            className="font-serif text-lg font-bold text-stone-900 tracking-tight cursor-pointer hover:opacity-85 transition"
-          >
-            PatternForge <span className="text-amber-600 font-sans text-xs px-2 py-0.5 rounded bg-amber-50 border border-amber-200 ml-1">AI</span>
-          </span>
-          <div className="h-4 w-px bg-stone-300"></div>
-          
-          {/* Switcher dropdown */}
-          <div ref={dropdownRef} className="relative">
-            <button
-              onClick={() => setSearchDropdownOpen(!searchDropdownOpen)}
-              className="font-serif text-base text-stone-700 flex items-center gap-1 hover:text-stone-900 transition font-bold"
+      <header className={`shrink-0 border-b-2 px-4 py-4 sm:px-6 ${isOaMode ? 'border-orange-200 bg-[#fff7df]' : 'border-[#e8e1d3] bg-[#fffdf8]'}`}>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              onClick={() => router.push('/dashboard')}
+              className="shrink-0 cursor-pointer text-lg font-black tracking-tight text-[#17263a] transition hover:opacity-85"
             >
-              <span>{problem.title}</span>
-              <ChevronDown className="w-4 h-4 text-stone-450" />
-            </button>
+              Pattern<span className="text-[#e67b1f]">Forge</span>
+            </span>
+            <span className="rounded-full border-2 border-[#f6d89b] bg-[#fff1d5] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#c56a17]">
+              {isOaMode ? 'OA mode' : 'AI mode'}
+            </span>
+            <div className="hidden h-5 w-px bg-[#e8e1d3] sm:block"></div>
 
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              className="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition"
-              title="Delete Problem from Database"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div ref={dropdownRef} className="relative min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSearchDropdownOpen(!searchDropdownOpen)}
+                  className="flex max-w-[48vw] items-center gap-1 truncate rounded-xl border-2 border-transparent px-2 py-1.5 text-left text-sm font-black text-[#17263a] transition hover:border-[#f0d7a3] hover:bg-[#fff9ee] sm:max-w-none"
+                >
+                  <span className="truncate">{problem.title}</span>
+                  <ChevronDown className="h-4 w-4 shrink-0 text-stone-450" />
+                </button>
 
-            {searchDropdownOpen && (
-              <div className="absolute left-0 mt-2 w-64 bg-white border border-stone-200 rounded-xl shadow-lg z-50 p-3 space-y-2">
-                <input
-                  type="text"
-                  placeholder="Search problems to switch..."
-                  value={workspaceSearchQuery}
-                  onChange={(e) => setWorkspaceSearchQuery(e.target.value)}
-                  className="w-full bg-[#FAF8F5] border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-stone-400 transition"
-                  autoFocus
-                />
-                <div className="max-h-48 overflow-y-auto space-y-1">
-                  {problemsList
-                    .filter((p) => p && p.title && typeof p.title === 'string' && p.title.toLowerCase().includes((workspaceSearchQuery || '').toLowerCase()))
-                    .map((p, pIdx) => (
-                      <button
-                        key={`workspace-switcher-prob-${p.id}-${pIdx}`}
-                        onClick={() => {
-                          setSearchDropdownOpen(false);
-                          router.push(`/workspace/${p.id}`);
-                        }}
-                        className={`w-full text-left p-2 rounded-lg text-xs transition flex justify-between items-center ${
-                          problem.id === p.id 
-                            ? 'bg-amber-50 text-amber-800 font-semibold' 
-                            : 'hover:bg-stone-50 text-stone-600'
-                        }`}
-                      >
-                        <span>{p.title}</span>
-                        <span className={`text-[9px] font-bold ${
-                          p.difficulty === 'EASY' ? 'text-emerald-600' :
-                          p.difficulty === 'MEDIUM' ? 'text-amber-600' :
-                          'text-red-600'
-                        }`}>{p.difficulty}</span>
-                      </button>
-                    ))}
-                </div>
+                <button
+                  hidden={isOaMode}
+                  onClick={() => setShowDeleteModal(true)}
+                  className="rounded-lg p-1.5 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
+                  title="Delete Problem from Database"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
-            )}
-          </div>
-        </div>
 
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-stone-400 font-mono">
-            {saveStatus === 'saving' ? 'Saving draft...' : 'Draft saved'}
-          </span>
-          <button 
-            onClick={() => setLeftTab('coach')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-950 text-white text-xs font-semibold shadow-sm transition animate-pulse animate-duration-3000"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-400" /> Ask AI Coach
-          </button>
-          <button 
-            onClick={handleRun}
-            disabled={isCompiling}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-medium transition"
-          >
-            <Play className="w-3.5 h-3.5 fill-current" /> Run Code
-          </button>
-          <button
-            onClick={() => {
-              setShowVoiceInterview(true);
-              setLeftTab('analytics');
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-850 text-amber-400 text-xs font-bold border border-stone-800 shadow-sm transition"
-          >
-            <Bot className="w-3.5 h-3.5 text-amber-400" />
-            <span>🎙️ AI Technical Interview Round (10 Min)</span>
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={isCompiling}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-sm transition"
-          >
-            <Send className="w-3.5 h-3.5" /> Submit Solution
-          </button>
-          <button
-            onClick={async () => {
-              setIsEvaluatingOa(true);
-              try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${apiUrl}/mistakes/evaluate-oa`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({
-                    company: 'Corporate Arena',
-                    problemTitle: problem?.title || 'Technical Assessment',
-                    code,
-                    language,
-                    status: verdict?.status || 'ACCEPTED',
-                    passedTestCases: verdict?.status === 'ACCEPTED' ? 10 : 7,
-                    totalTestCases: 10,
-                    vocalTranscript,
-                  }),
-                });
-                if (res.ok) {
-                  const report = await res.json();
-                  localStorage.setItem('last_oa_report', JSON.stringify(report));
-                  router.push('/interview-arena/report');
+              {searchDropdownOpen && (
+                <div className="absolute left-0 mt-2 w-64 rounded-xl border border-stone-200 bg-white p-3 shadow-lg z-50 space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Search problems to switch..."
+                    value={workspaceSearchQuery}
+                    onChange={(e) => setWorkspaceSearchQuery(e.target.value)}
+                    className="w-full bg-[#FAF8F5] border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-stone-400 transition"
+                    autoFocus
+                  />
+                  <div className="max-h-48 overflow-y-auto space-y-1">
+                    {problemsList
+                      .filter((p) => p && p.title && typeof p.title === 'string' && p.title.toLowerCase().includes((workspaceSearchQuery || '').toLowerCase()))
+                      .map((p, pIdx) => (
+                        <button
+                          key={`workspace-switcher-prob-${p.id}-${pIdx}`}
+                          onClick={() => {
+                            setSearchDropdownOpen(false);
+                            router.push(`/workspace/${p.id}`);
+                          }}
+                          className={`w-full text-left p-2 rounded-lg text-xs transition flex justify-between items-center ${problem.id === p.id
+                              ? 'bg-amber-50 text-amber-800 font-semibold'
+                              : 'hover:bg-stone-50 text-stone-600'
+                            }`}
+                        >
+                          <span>{p.title}</span>
+                          <span className={`text-[9px] font-bold ${p.difficulty === 'EASY'
+                              ? 'text-emerald-600'
+                              : p.difficulty === 'MEDIUM'
+                                ? 'text-amber-600'
+                                : 'text-red-600'
+                            }`}>{p.difficulty}</span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:gap-3">
+            <span className={`mr-auto whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.18em] ${isOaMode ? 'text-orange-700' : 'text-slate-400'}`}>
+              {saveStatus === 'saving' ? 'Saving draft...' : 'Draft saved'}
+            </span>
+            {isOaMode && <span className="flex items-center gap-1.5 rounded-xl border-2 border-orange-300 bg-white px-3 py-2 font-mono text-sm font-black text-orange-700"><Timer className="h-4 w-4" />{oaTimeLabel}</span>}
+            <button
+              onClick={handleRun}
+              disabled={isCompiling}
+              className="flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-[#e3d8c8] bg-white px-3 py-2 text-xs font-bold text-[#17263a] transition active:translate-y-[2px]"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" /> Run Code
+            </button>
+            {!isOaMode && <button
+              onClick={handleSubmit}
+              disabled={isCompiling}
+              className="flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-amber-600 bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-2 text-xs font-bold text-slate-950 shadow-sm transition active:translate-y-[2px]"
+            >
+              <Send className="w-3.5 h-3.5" /> Submit Solution
+            </button>}
+            {isOaMode && <button
+              onClick={async () => {
+                setIsEvaluatingOa(true);
+                try {
+                  const token = localStorage.getItem('token');
+                  const res = await fetch(`${apiUrl}/mistakes/evaluate-oa`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      company: oaCompany,
+                      problemTitle: problem?.title || 'Technical Assessment',
+                      code,
+                      language,
+                      status: verdict?.status || 'ACCEPTED',
+                      passedTestCases: verdict?.status === 'ACCEPTED' ? 10 : 7,
+                      totalTestCases: 10,
+                      vocalTranscript,
+                    }),
+                  });
+                  if (res.ok) {
+                    const report = await res.json();
+                    localStorage.setItem('last_oa_report', JSON.stringify(report));
+                    router.push('/interview-arena/report');
+                  }
+                } catch (e) {
+                  console.error(e);
+                } finally {
+                  setIsEvaluatingOa(false);
                 }
-              } catch (e) {
-                console.error(e);
-              } finally {
-                setIsEvaluatingOa(false);
-              }
-            }}
-            disabled={isEvaluatingOa}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition uppercase tracking-wider"
-          >
-            <Award className="w-3.5 h-3.5" />
-            <span>{isEvaluatingOa ? 'Evaluating...' : 'Finish OA & View Report'}</span>
-          </button>
+              }}
+              disabled={isEvaluatingOa}
+              className="flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-emerald-700 bg-emerald-500 px-3 py-2 text-xs font-black uppercase tracking-wide text-white shadow-sm transition active:translate-y-[2px]"
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>{isEvaluatingOa ? 'Evaluating...' : 'Finish OA & View Report'}</span>
+            </button>}
+          </div>
         </div>
       </header>
 
       {/* Main Workspace split */}
-      <main className="flex-1 flex min-h-0 min-w-0 overflow-hidden">
+      <main className="flex-1 min-h-0 min-w-0 overflow-hidden lg:grid lg:grid-cols-[1.08fr_1.32fr]">
         {/* Left pane: Details & Analytics */}
-        <section className="w-1/2 border-r border-[#EFECE6] flex flex-col h-full bg-white overflow-hidden min-w-0">
+        <section className="flex min-h-[52vh] w-full min-h-0 flex-col overflow-hidden border-b-2 border-[#e8e1d3] bg-[#fffdf8] lg:min-h-0 lg:border-b-0 lg:border-r-2">
           {/* Left Tab Bar Selector */}
-          <div className="h-10 px-6 bg-stone-50 border-b border-[#EFECE6] flex items-center gap-4 text-xs font-semibold text-stone-500 shrink-0">
+          <div className="flex min-h-12 shrink-0 items-center gap-4 overflow-x-auto border-b-2 border-[#e8e1d3] bg-[#fff8e9] px-4 text-xs font-bold text-slate-500 sm:px-6">
             <button
               onClick={() => setLeftTab('problem')}
-              className={`py-3 px-1 border-b-2 transition ${
-                leftTab === 'problem' ? 'border-amber-700 text-amber-800 font-bold' : 'border-transparent hover:text-stone-700'
-              }`}
+              className={`py-3 px-1 border-b-2 transition ${leftTab === 'problem' ? 'border-amber-700 text-amber-800 font-bold' : 'border-transparent hover:text-stone-700'
+                }`}
             >
               Problem Description
             </button>
-            <button
-              onClick={() => setLeftTab('analytics')}
-              className={`py-3 px-1 border-b-2 transition flex items-center gap-1.5 ${
-                leftTab === 'analytics'
-                  ? 'border-amber-700 text-amber-800 font-bold'
-                  : 'border-transparent hover:text-stone-700'
-              }`}
-            >
-              Performance Analytics (AI)
-            </button>
-            <button
+            {!isOaMode && <button
               onClick={() => setLeftTab('coach')}
-              className={`py-3 px-1 border-b-2 transition flex items-center gap-1.5 ${
-                leftTab === 'coach'
+              className={`py-3 px-1 border-b-2 transition flex items-center gap-1.5 ${leftTab === 'coach'
                   ? 'border-amber-700 text-amber-800 font-bold'
                   : 'border-transparent hover:text-stone-700'
-              }`}
+                }`}
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
               AI Coding Coach
-            </button>
+            </button>}
           </div>
 
           {/* Left Tab Content */}
@@ -1024,18 +1198,17 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
               </div>
 
               {/* Messages list (Fixed scrollable within window limit) */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
                 {chatMessages.map((msg, idx) => (
                   <div
                     key={idx}
                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[88%] rounded-2xl p-4 shadow-2xs ${
-                        msg.role === 'user'
+                      className={`max-w-[88%] rounded-2xl p-4 shadow-2xs ${msg.role === 'user'
                           ? 'bg-amber-600 text-white font-sans text-xs leading-relaxed rounded-br-xs'
                           : 'bg-white border border-stone-200/80 text-stone-800 rounded-bl-xs'
-                      }`}
+                        }`}
                     >
                       {msg.role === 'user' ? (
                         <p className="whitespace-pre-wrap font-sans text-xs">{msg.content}</p>
@@ -1078,41 +1251,55 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
               </div>
 
               {/* Message input (Fixed at bottom) */}
-              <div className="p-4 px-6 border-t border-stone-200 bg-white flex items-center gap-2 shrink-0">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !isSendingChat && chatInput.trim()) {
-                      handleSendPrompt(chatInput);
-                    }
-                  }}
-                  disabled={isSendingChat}
-                  placeholder="Ask your AI coach a question..."
-                  className="flex-1 bg-stone-50 border border-stone-200/90 rounded-xl px-4 py-2.5 text-xs text-stone-800 outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/10 transition font-sans"
-                />
-                <button
-                  onClick={() => handleSendPrompt(chatInput)}
-                  disabled={isSendingChat || !chatInput.trim()}
-                  className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white text-xs font-semibold rounded-xl transition shadow-2xs flex items-center gap-1.5 font-sans"
-                >
-                  <span>Send</span>
-                  <Send className="w-3.5 h-3.5" />
-                </button>
+              <div className="shrink-0 border-t border-stone-200 bg-white p-4 px-6">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !isSendingChat && chatInput.trim()) {
+                        handleSendPrompt(chatInput);
+                      }
+                    }}
+                    disabled={isSendingChat}
+                    placeholder="Ask your AI coach a question..."
+                    className="flex-1 bg-stone-50 border border-stone-200/90 rounded-xl px-4 py-2.5 text-xs text-stone-800 outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/10 transition font-sans"
+                  />
+                  <button
+                    onClick={() => handleSendPrompt(chatInput)}
+                    disabled={isSendingChat || !chatInput.trim()}
+                    className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white text-xs font-semibold rounded-xl transition shadow-2xs flex items-center gap-1.5 font-sans"
+                  >
+                    <span>Send</span>
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto p-8">
+            <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-8">
+              {isOaMode && (
+                <div className="mb-6 space-y-3 rounded-3xl border-2 border-b-4 border-orange-200 bg-[#fff4d6] p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-700">Live assessment</p>
+                      <h2 className="mt-1 text-xl font-black text-[#17263a]">{oaCompany} coding screen</h2>
+                      <p className="mt-1 text-xs leading-relaxed text-slate-600">Work independently, run your checks, and submit when your solution is ready. Hints and learning prompts are intentionally unavailable in this mode.</p>
+                    </div>
+                    <div className="rounded-2xl border-2 border-orange-200 bg-white px-3 py-2 text-right"><span className="block text-[10px] font-black uppercase text-slate-400">Time left</span><span className="font-mono text-lg font-black text-orange-700">{oaTimeLabel}</span></div>
+                  </div>
+                  {oaVoiceEnabled && <AiVoiceInterviewer company={oaCompany} problemTitle={problem.title} code={code} language={language} onInterviewComplete={(transcript) => setVocalTranscript(transcript)} />}
+                </div>
+              )}
               {leftTab === 'problem' ? (
-                <div className="max-w-2xl">
+                <div className="max-w-2xl text-stone-800">
                   {/* Title & Metadata */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                      problem.difficulty === 'EASY' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                      problem.difficulty === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                      'bg-red-50 text-red-700 border border-red-100'
-                    }`}>
+                  <div className="mb-4 flex items-center gap-3">
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${problem.difficulty === 'EASY' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                        problem.difficulty === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                          'bg-red-50 text-red-700 border border-red-100'
+                      }`}>
                       {problem.difficulty}
                     </span>
                     <div className="flex items-center gap-3 text-xs text-stone-400 font-mono">
@@ -1121,12 +1308,12 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                     </div>
                   </div>
 
-                  <h2 className="font-serif text-3xl font-bold text-stone-900 mb-6">{problem.title}</h2>
+                  <h2 className="mb-6 font-serif text-4xl font-bold leading-tight tracking-[-0.04em] text-stone-900">{problem.title}</h2>
 
                   {/* Description */}
-                  <div className="font-serif text-stone-800 leading-relaxed space-y-4 mb-8 text-base">
+                  <div className="mb-8 space-y-4 font-serif text-[1.06rem] leading-[1.9] tracking-[0.01em] text-stone-800">
                     {problem.description.split('\n\n').map((para, idx) => (
-                      <p key={idx}>{formatInlineText(para)}</p>
+                      <p key={idx} className="text-pretty">{formatInlineText(para)}</p>
                     ))}
                   </div>
 
@@ -1135,7 +1322,17 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                     <h3 className="font-serif text-lg font-bold text-stone-900 border-b border-stone-100 pb-2">Examples</h3>
                     {problem.examples.map((ex, idx) => (
                       <div key={ex.id} className="bg-stone-50 rounded-xl p-5 border border-stone-200 font-sans text-sm">
-                        <p className="font-bold text-stone-800 mb-1">Example {idx + 1}:</p>
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-bold text-stone-800">Example {idx + 1}:</p>
+                          <button
+                            type="button"
+                            onClick={() => handleVisualizeExample(ex)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] font-bold text-amber-800 transition hover:bg-amber-100"
+                          >
+                            <Activity className="h-3.5 w-3.5" />
+                            {savedDiagrams.some((diagram) => diagram.exampleId === ex.id) ? 'Open saved visual' : 'Visualize example'}
+                          </button>
+                        </div>
                         <div className="space-y-1.5 font-mono text-stone-600">
                           <p><strong className="font-sans text-stone-800">Input:</strong> {ex.input}</p>
                           <p><strong className="font-sans text-stone-800">Output:</strong> {ex.output}</p>
@@ -1146,6 +1343,40 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                       </div>
                     ))}
                   </div>
+
+                  {activeDiagram && (
+                    <section className="mb-8 overflow-hidden rounded-2xl border-2 border-amber-200 bg-[#fffaf0] shadow-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-200 bg-amber-50/80 px-4 py-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700">Example visual</p>
+                          <h3 className="font-serif text-lg font-bold text-stone-900">{activeDiagram.label}</h3>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {savedDiagrams.some((diagram) => diagram.exampleId === selectedExampleId) && (
+                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800">Saved</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={handleSaveDiagram}
+                            disabled={isSavingDiagram || savedDiagrams.some((diagram) => diagram.exampleId === selectedExampleId)}
+                            className="rounded-lg bg-amber-600 px-3 py-2 text-[11px] font-bold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isSavingDiagram ? 'Saving...' : 'Save visual'}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="min-h-44 overflow-x-auto p-4">
+                        {activeDiagram.visualData?.mode ? (
+                          <VisualLearningPanel diagram={activeDiagram} />
+                        ) : (
+                          <>
+                            {isRenderingDiagram && <p className="py-12 text-center text-xs font-semibold text-stone-500">Drawing the example...</p>}
+                            <div ref={diagramRef} className="flex min-h-36 items-center justify-center [&_svg]:max-w-full" aria-label={`${activeDiagram.label} diagram`} />
+                          </>
+                        )}
+                      </div>
+                    </section>
+                  )}
 
                   {/* Constraints */}
                   <div className="mb-8">
@@ -1172,150 +1403,30 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                     </div>
                   </div>
                 </div>
-              ) : leftTab === 'analytics' ? (
-                <div className="max-w-2xl space-y-6 font-sans">
-                  {showVoiceInterview && (
-                    <AiVoiceInterviewer
-                      company="Corporate Arena"
-                      problemTitle={problem?.title || 'Technical Assessment'}
-                      code={code}
-                      language={language}
-                      onInterviewComplete={(transcript) => {
-                        setVocalTranscript(transcript);
-                      }}
-                    />
-                  )}
-
-                  <SolutionPathAnalyzer
-                    code={code}
-                    language={language}
-                    optimalTime={problem.optimalTime}
-                    optimalSpace={problem.optimalSpace}
-                  />
-
-                  {verdict && verdict.analysis && (
-                    <>
-                      {/* AI Analysis Header */}
-                      <div>
-                        <h3 className="font-serif text-2xl font-bold text-stone-900 leading-tight">AI Code Analysis & Feedback</h3>
-                        <p className="text-stone-500 text-xs mt-1">Analyzing static code pattern and dynamic sandbox metrics...</p>
-                      </div>
-
-                      {/* Complexity Cards */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-[#FAF8F5] border border-[#EFECE6] p-4 rounded-xl text-center shadow-sm">
-                          <span className="block text-[10px] text-stone-400 font-semibold uppercase tracking-wider mb-1">Detected Time Complexity</span>
-                          <strong className="text-stone-850 text-lg font-mono">{verdict.analysis.timeComplexity}</strong>
-                        </div>
-                        <div className="bg-[#FAF8F5] border border-[#EFECE6] p-4 rounded-xl text-center shadow-sm">
-                          <span className="block text-[10px] text-stone-400 font-semibold uppercase tracking-wider mb-1">Detected Space Complexity</span>
-                          <strong className="text-stone-850 text-lg font-mono">{verdict.analysis.spaceComplexity}</strong>
-                        </div>
-                      </div>
-
-                      {/* Method Tag */}
-                      <div className="p-4 bg-amber-50/50 border border-amber-100/50 rounded-xl flex items-center justify-between shadow-sm">
-                        <span className="text-xs text-stone-550 font-medium">Algorithmic Pattern:</span>
-                        <span className="px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg">
-                          {verdict.analysis.method}
-                        </span>
-                      </div>
-
-                      {/* Performance Speed Graph */}
-                      <div className="space-y-4 pt-3 border-t border-stone-100">
-                        <h4 className="font-serif text-sm font-bold text-stone-800">Execution Speed Benchmark</h4>
-                        <div className="space-y-3 font-mono text-xs">
-                          {(() => {
-                            const bfComplexity = verdict.analysis.bruteForceComplexity || 'O(N²)';
-                            const bfTime = (verdict.analysis.bruteForceTimeMs || 120) / 1000;
-                            const optTime = (verdict.analysis.optimalTimeMs || 35) / 1000;
-                            const userTime = typeof verdict.runtime === 'string' ? parseFloat(verdict.runtime) : (verdict.runtime || 0.04);
-
-                            const userPct = Math.min(Math.round((userTime / bfTime) * 100), 100);
-                            const userWidth = Math.max(userPct, 12);
-                            const optPct = Math.min(Math.round((optTime / bfTime) * 100), 100);
-                            const optWidth = Math.max(optPct, 8);
-
-                            const isOptimal = userTime <= (optTime * 1.35);
-
-                            return (
-                              <>
-                                {/* Brute Force */}
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-[10px] text-stone-400">
-                                    <span>Brute Force Average ({bfComplexity})</span>
-                                    <span>{bfTime.toFixed(3)}s</span>
-                                  </div>
-                                  <div className="w-full bg-stone-100 h-2 rounded-full overflow-hidden">
-                                    <div className="bg-red-500/80 h-full rounded-full" style={{ width: '100%' }}></div>
-                                  </div>
-                                </div>
-
-                                {/* User Submission */}
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-[10px] text-stone-750 font-bold">
-                                    <span className="flex items-center gap-1 font-semibold">
-                                      Your Solution {isOptimal && <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 inline" />}
-                                    </span>
-                                    <span className="text-amber-700 font-bold">{userTime.toFixed(3)}s</span>
-                                  </div>
-                                  <div className="w-full bg-stone-100 h-3 rounded-full overflow-hidden border border-stone-200/50 shadow-inner">
-                                    <div className={`h-full rounded-full transition-all duration-1000 ${
-                                      isOptimal ? 'bg-emerald-500' : 'bg-orange-500'
-                                    }`} style={{ width: `${userWidth}%` }}></div>
-                                  </div>
-                                </div>
-
-                                {/* Optimal */}
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-[10px] text-stone-400">
-                                    <span>Optimal Solution ({verdict.analysis.optimalComplexity || 'O(N)'})</span>
-                                    <span>{optTime.toFixed(3)}s</span>
-                                  </div>
-                                  <div className="w-full bg-stone-100 h-2 rounded-full overflow-hidden">
-                                    <div className="bg-emerald-500/80 h-full rounded-full" style={{ width: `${optWidth}%` }}></div>
-                                  </div>
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      </div>
-
-                      {/* AI Review Commentary */}
-                      <div className="space-y-2 border-t border-stone-100 pt-4">
-                        <h4 className="font-serif text-sm font-bold text-stone-850">AI Algorithmic Feedback</h4>
-                        <div className="p-5 bg-stone-50 rounded-xl border border-stone-200/65 text-xs text-stone-650 leading-relaxed font-normal">
-                          {verdict.analysis.feedback}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
               ) : null}
             </div>
           )}
         </section>
 
         {/* Right pane: Editor & Console */}
-        <section className="w-1/2 flex flex-col h-full bg-[#1A1A18] overflow-hidden min-w-0">
+        <section className={`flex min-h-[70vh] w-full min-h-0 flex-col overflow-hidden border-t-2 lg:min-h-0 lg:border-t-0 ${isOaMode ? 'border-orange-200 bg-[#1d2b3a]' : 'border-[#e8e1d3] bg-[#17263a]'}`}>
           {currentPhase !== 'CODING_UNLOCKED' &&
-           currentPhase !== 'SUBMITTED' &&
-           currentPhase !== 'ANALYZED' &&
-           currentPhase !== 'REFLECTION_REQUIRED' &&
-           currentPhase !== 'COMPLETED' ? (
-            
+            currentPhase !== 'SUBMITTED' &&
+            currentPhase !== 'ANALYZED' &&
+            currentPhase !== 'REFLECTION_REQUIRED' &&
+            currentPhase !== 'COMPLETED' ? (
+
             /* Thinking Loop Wizard UI */
             <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col justify-between bg-[#131312] text-stone-200">
               <div className="space-y-6">
-                
+
                 {/* Wizard Header Progress Bar */}
                 <div className="flex items-center justify-between border-b border-stone-800 pb-4 mb-4">
                   <div className="flex items-center gap-2.5">
                     <span className="text-[10px] bg-amber-500/10 text-amber-500 border border-amber-500/30 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
                       Cognitive Thinking Wizard
                     </span>
-                    <button 
+                    <button
                       onClick={() => {
                         sendTelemetry('bypass_wizard', { time: Date.now() });
                         setCurrentPhase('CODING_UNLOCKED');
@@ -1334,9 +1445,8 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                       const isActive = idx === activeIdx;
                       return (
                         <div key={idx} className="flex items-center gap-1">
-                          <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                            isDone ? 'bg-emerald-500' : isActive ? 'bg-amber-500 scale-110 shadow-2xs' : 'bg-stone-700'
-                          }`} title={p === 'READING_PROBLEM' ? 'Reading Phase' : 'Approach Design'} />
+                          <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${isDone ? 'bg-emerald-500' : isActive ? 'bg-amber-500 scale-110 shadow-2xs' : 'bg-stone-700'
+                            }`} title={p === 'READING_PROBLEM' ? 'Reading Phase' : 'Approach Design'} />
                           {idx < 1 && <div className={`w-4 h-0.5 ${idx < activeIdx ? 'bg-emerald-500' : 'bg-stone-700'}`} />}
                         </div>
                       );
@@ -1362,7 +1472,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                         {/* Countdown circle */}
                         <svg className="w-full h-full transform -rotate-90">
                           <circle cx="40" cy="40" r="34" stroke="#292524" strokeWidth="4" fill="transparent" />
-                          <circle 
+                          <circle
                             cx="40" cy="40" r="34" stroke="#d97706" strokeWidth="4" fill="transparent"
                             strokeDasharray={2 * Math.PI * 34}
                             strokeDashoffset={2 * Math.PI * 34 * (1 - readingTimeRemaining / 30)}
@@ -1375,7 +1485,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                         <strong className="block text-sm text-white">Soft Lock Reading Countdown</strong>
                         <span className="text-xs text-stone-500">Wait for the countdown to complete to unlock approach design.</span>
                       </div>
-                      
+
                       {readingTimeRemaining === 0 ? (
                         <button
                           onClick={() => setCurrentPhase('APPROACH_REASONING')}
@@ -1430,11 +1540,10 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                             <button
                               key={tc}
                               onClick={() => setTargetTimeComplexity(tc)}
-                              className={`px-2.5 py-1 text-[10px] rounded font-bold transition font-mono ${
-                                targetTimeComplexity === tc
+                              className={`px-2.5 py-1 text-[10px] rounded font-bold transition font-mono ${targetTimeComplexity === tc
                                   ? 'bg-amber-50 text-stone-950'
                                   : 'bg-stone-800 text-stone-400 hover:text-stone-200'
-                              }`}
+                                }`}
                             >
                               {tc}
                             </button>
@@ -1448,11 +1557,10 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                             <button
                               key={sc}
                               onClick={() => setTargetSpaceComplexity(sc)}
-                              className={`px-2.5 py-1 text-[10px] rounded font-bold transition font-mono ${
-                                targetSpaceComplexity === sc
+                              className={`px-2.5 py-1 text-[10px] rounded font-bold transition font-mono ${targetSpaceComplexity === sc
                                   ? 'bg-amber-50 text-stone-950'
                                   : 'bg-stone-800 text-stone-400 hover:text-stone-200'
-                              }`}
+                                }`}
                             >
                               {sc}
                             </button>
@@ -1473,15 +1581,14 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                     </div>
 
                     {approachFeedback && (
-                      <div className={`p-4 rounded-xl border text-xs flex flex-col gap-2 ${
-                        approachScoring?.passed ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400' : 'bg-red-950/20 border-red-900/30 text-red-400'
-                      }`}>
+                      <div className={`p-4 rounded-xl border text-xs flex flex-col gap-2 ${approachScoring?.passed ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-400' : 'bg-red-950/20 border-red-900/30 text-red-400'
+                        }`}>
                         <div className="flex items-center gap-1.5 font-bold">
                           {approachScoring?.passed ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
                           <span>{approachScoring ? 'Approach Evaluated' : 'Evaluation Notice'}</span>
                         </div>
                         <p className="font-normal font-sans text-stone-300 leading-relaxed">{approachFeedback}</p>
-                        
+
                         {approachScoring && (
                           <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-stone-850 text-center font-mono text-[10px]">
                             <div className="bg-stone-900/40 p-1.5 rounded border border-stone-800">
@@ -1597,16 +1704,16 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                 <span>⚡ Enforced by PatternForge AI thinking pipeline engine.</span>
               </div>
             </div>
-            
+
           ) : (
-            
+
             /* standard coding view */
             <>
               {/* Language Selector Bar */}
-              <div className="h-10 px-4 bg-stone-900 border-b border-stone-800 flex items-center justify-between text-xs text-stone-400">
+              <div className={`flex min-h-12 items-center justify-between border-b-2 px-4 text-xs ${isOaMode ? 'border-[#31445d] bg-[#20344d] text-slate-300' : 'border-[#31445d] bg-[#20344d] text-slate-300'}`}>
                 <div className="flex items-center gap-2.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-medium text-stone-400">Language:</span>
+                    <span className="font-bold text-slate-300">Language:</span>
                     <div className="relative group">
                       <select
                         value={language}
@@ -1614,7 +1721,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                           setLanguage(e.target.value);
                           setCode('');
                         }}
-                        className="bg-stone-800 text-stone-200 border border-stone-700 rounded px-2 py-0.5 cursor-pointer outline-none hover:bg-stone-700 transition"
+                        className="cursor-pointer rounded-xl border-2 border-[#48617e] bg-[#17263a] px-2 py-1 text-slate-100 outline-none transition hover:bg-[#28425f]"
                       >
                         <option value="python">Python 3</option>
                         <option value="javascript">JavaScript</option>
@@ -1626,7 +1733,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                   <button
                     onClick={handleResetCode}
                     title="Reset to default template"
-                    className="p-1 hover:bg-stone-800 rounded text-stone-400 hover:text-stone-200 transition flex items-center justify-center"
+                    className="flex items-center justify-center rounded-lg p-1 text-slate-300 transition hover:bg-[#28425f] hover:text-white"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
@@ -1634,7 +1741,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                   <button
                     onClick={handleFormatCode}
                     title="Format Code (Alt+Shift+F)"
-                    className="px-2 py-1 bg-stone-800 hover:bg-stone-700 text-amber-400 hover:text-amber-300 rounded text-xs font-semibold font-mono border border-stone-700 transition flex items-center gap-1.5 shadow-2xs"
+                    className="flex items-center gap-1.5 rounded-lg border-2 border-[#48617e] bg-[#28425f] px-2 py-1 font-mono text-xs font-bold text-amber-300 transition hover:bg-[#355575]"
                   >
                     <Code2 className="w-3.5 h-3.5" />
                     <span>Format</span>
@@ -1643,29 +1750,28 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
               </div>
 
               {/* Monaco Editor container */}
-              <div className="flex-1 min-h-[300px] bg-[#1E1E1C] relative">
-                <div className="absolute inset-4">
+              <div className="relative min-h-[360px] flex-1 min-h-0 overflow-hidden bg-[#101d2d]">
+                {isOaMode && <div className="pointer-events-none absolute left-4 top-3 z-10 rounded-full border border-orange-300/30 bg-orange-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-orange-200">Assessment editor</div>}
+                <div className="absolute inset-3 overflow-hidden sm:inset-4">
                   <MonacoWrapper theme="dark" />
                 </div>
               </div>
 
               {/* Console / Output Tabs */}
-              <div className="h-1/3 min-h-[180px] border-t border-stone-800 bg-[#1A1A18] flex flex-col overflow-hidden">
+              <div className="flex min-h-[240px] h-1/3 min-h-0 flex-col overflow-hidden border-t-2 border-[#31445d] bg-[#17263a]">
                 {/* Console Tab triggers */}
                 <div className="h-9 px-4 bg-stone-900 border-b border-stone-800 flex items-center gap-4 text-xs font-medium text-stone-400">
                   <button
                     onClick={() => setActiveTab('console')}
-                    className={`py-2 px-1 border-b-2 transition ${
-                      activeTab === 'console' ? 'text-amber-500 border-amber-500' : 'border-transparent hover:text-stone-200'
-                    }`}
+                    className={`py-2 px-1 border-b-2 transition ${activeTab === 'console' ? 'text-amber-500 border-amber-500' : 'border-transparent hover:text-stone-200'
+                      }`}
                   >
                     Test Cases Console
                   </button>
                   <button
                     onClick={() => setActiveTab('verdict')}
-                    className={`py-2 px-1 border-b-2 transition ${
-                      activeTab === 'verdict' ? 'text-amber-500 border-amber-500' : 'border-transparent hover:text-stone-200'
-                    }`}
+                    className={`py-2 px-1 border-b-2 transition ${activeTab === 'verdict' ? 'text-amber-500 border-amber-500' : 'border-transparent hover:text-stone-200'
+                      }`}
                   >
                     Execution Result
                   </button>
@@ -1703,11 +1809,10 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                               <div key={tc.id} className="relative flex items-center group">
                                 <button
                                   onClick={() => setActiveTestCaseIdx(idx)}
-                                  className={`px-3 py-1.5 text-xs rounded-lg font-medium transition flex items-center gap-1.5 whitespace-nowrap ${
-                                    activeTestCaseIdx === idx
+                                  className={`px-3 py-1.5 text-xs rounded-lg font-medium transition flex items-center gap-1.5 whitespace-nowrap ${activeTestCaseIdx === idx
                                       ? 'bg-stone-800 text-amber-400 border border-amber-500/30'
                                       : 'bg-stone-900/60 text-stone-400 hover:text-stone-200 border border-stone-800'
-                                  }`}
+                                    }`}
                                 >
                                   <span>{tc.label}</span>
                                 </button>
@@ -1810,15 +1915,13 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                                   <button
                                     key={idx}
                                     onClick={() => setActiveResultCaseIdx(idx)}
-                                    className={`px-3 py-1.5 text-xs rounded-lg font-medium transition flex items-center gap-1.5 whitespace-nowrap ${
-                                      activeResultCaseIdx === idx
+                                    className={`px-3 py-1.5 text-xs rounded-lg font-medium transition flex items-center gap-1.5 whitespace-nowrap ${activeResultCaseIdx === idx
                                         ? 'bg-stone-800 text-stone-200 border border-stone-700'
                                         : 'bg-transparent text-stone-400 hover:text-stone-200 border border-transparent'
-                                    }`}
+                                      }`}
                                   >
-                                    <span className={`w-1.5 h-1.5 rounded-full ${
-                                      tc.status === 'ACCEPTED' ? 'bg-emerald-500' : 'bg-red-500'
-                                    }`} />
+                                    <span className={`w-1.5 h-1.5 rounded-full ${tc.status === 'ACCEPTED' ? 'bg-emerald-500' : 'bg-red-500'
+                                      }`} />
                                     Case {idx + 1}
                                   </button>
                                 ))}
@@ -1835,9 +1938,8 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                                   <div className="space-y-3 pt-1 text-xs">
                                     <div className="flex items-center gap-2">
                                       <span className="text-[10px] text-stone-500 font-semibold uppercase tracking-wider">Status:</span>
-                                      <span className={`font-bold ${
-                                        tcRes.status === 'ACCEPTED' ? 'text-emerald-500' : 'text-red-500'
-                                      }`}>{tcRes.status}</span>
+                                      <span className={`font-bold ${tcRes.status === 'ACCEPTED' ? 'text-emerald-500' : 'text-red-500'
+                                        }`}>{tcRes.status}</span>
                                       {tcRes.runtime !== undefined && (
                                         <span className="text-[10px] text-stone-500 font-mono">({tcRes.runtime}s)</span>
                                       )}
@@ -1943,7 +2045,8 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
       {showSkillJump && (
         <div className="fixed inset-0 bg-stone-950/85 backdrop-blur-xs flex items-center justify-center z-50 animate-fadeIn font-sans">
           {/* Fenced keyframe styles inside React to avoid layout break */}
-          <style dangerouslySetInnerHTML={{ __html: `
+          <style dangerouslySetInnerHTML={{
+            __html: `
             @keyframes flyOut1 { 0% { transform: translate(0, 0) scale(0.5); opacity: 1; } 100% { transform: translate(-70px, -60px) scale(1.2); opacity: 0; } }
             @keyframes flyOut2 { 0% { transform: translate(0, 0) scale(0.5); opacity: 1; } 100% { transform: translate(70px, -50px) scale(1.2); opacity: 0; } }
             @keyframes flyOut3 { 0% { transform: translate(0, 0) scale(0.5); opacity: 1; } 100% { transform: translate(-50px, 70px) scale(1.2); opacity: 0; } }
@@ -1978,7 +2081,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
           `}} />
 
           <div className="bg-white border border-[#EFECE6] p-8 rounded-3xl max-w-lg w-full mx-4 shadow-2xl relative overflow-hidden flex flex-col items-center">
-            
+
             {/* Background absolute visuals */}
             <div className="absolute right-0 top-0 w-36 h-36 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -1999,7 +2102,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
 
             {/* MAIN ANIMATION INTERACTION VIEWPORT (Min height 240px) */}
             <div className="w-full h-64 flex flex-col items-center justify-center relative mb-6 border border-stone-100 bg-[#FAF8F5]/50 rounded-2xl overflow-hidden shadow-inner">
-              
+
               {/* Step 1: Confetti sparkles & Success Banner */}
               {animationStep === 1 && (
                 <div className="relative flex flex-col items-center space-y-2 text-center animate-fadeIn">
@@ -2008,7 +2111,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                   <div className="absolute w-2 h-2 rounded-full bg-emerald-500 animate-sparkle2" />
                   <div className="absolute w-2 h-2 rounded-full bg-blue-500 animate-sparkle3" />
                   <div className="absolute w-2 h-2 rounded-full bg-purple-500 animate-sparkle4" />
-                  
+
                   <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-sm">
                     <CheckCircle className="w-8 h-8 text-emerald-600" />
                   </div>
@@ -2068,7 +2171,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                     <span className="text-stone-850 font-mono font-bold">Updating...</span>
                   </div>
                   <div className="w-full bg-stone-200 h-3 rounded-full overflow-hidden relative shadow-inner">
-                    <div 
+                    <div
                       className="bg-amber-500 h-full rounded-full transition-all duration-700 ease-out"
                       style={{ width: '38%' }}
                     />
@@ -2115,7 +2218,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
             {/* MULTI-SKILL UPDATE DETAIL STATS (Spotify style abilities) */}
             <div className="w-full bg-[#FAF8F5] border border-stone-200 rounded-2xl p-4 space-y-2 mb-6">
               <span className="text-[9px] text-stone-400 uppercase tracking-wider font-bold block mb-1">Algorithmic Abilities Updates</span>
-              
+
               {/* Dynamic list showing how skills are updated */}
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="flex justify-between items-center bg-white border border-stone-150 p-2 rounded-lg">

@@ -1,5 +1,6 @@
 'use client';
 
+import { useLayoutEffect, useRef, useState } from 'react';
 import { hierarchy, tree } from 'd3-hierarchy';
 import type { JourneyNode as JourneyNodeData } from '../AlgorithmJourney/JourneyNodeCard';
 import { Sky } from './Sky'; import { Clouds } from './Clouds'; import { Mountains } from './Mountains'; import { Hills } from './Hills'; import { Trees } from './Trees'; import { SceneDecorations } from './SceneDecorations'; import { JourneyPath, type WorldPosition } from './JourneyPath'; import { JourneyNode } from './JourneyNode';
@@ -13,6 +14,10 @@ const unitMeta: Record<JourneyNodeData['category'], Omit<Unit, 'category' | 'y'>
   'data-structures': { eyebrow: 'Trail three', title: 'Data structures', tone: '#397dbf' },
   'problem-solving': { eyebrow: 'Trail four', title: 'Problem solving', tone: '#7855c7' },
 };
+const WORLD_WIDTH = 1200;
+// Never zoom the world below this — on phones the fit-to-width scale would make
+// checkpoints unreadably tiny, so we keep a floor and let the map pan sideways.
+const MIN_SCALE = 0.58;
 function makeLayout(nodes: JourneyNodeData[]) {
   const children = new Map<string, string[]>(); const ids = new Set(nodes.map((node) => node.id));
   nodes.forEach((node) => { const parent = node.prerequisites.find((id) => ids.has(id)); if (parent) children.set(parent, [...(children.get(parent) || []), node.id]); });
@@ -27,7 +32,21 @@ function makeLayout(nodes: JourneyNodeData[]) {
 export function LearningWorld({ nodes, selectedNodeId, onSelect }: { nodes: JourneyNodeData[]; selectedNodeId: string | null; onSelect: (id: string) => void }) {
   const positions = makeLayout(nodes);
   const units: Unit[] = (['foundations', 'core-patterns', 'data-structures', 'problem-solving'] as const).flatMap((category) => { const first = nodes.find((node) => node.category === category); const position = first && positions.get(first.id); return position ? [{ category, y: Math.max(84, position.y - 125), ...unitMeta[category] }] : []; });
+  // Measure the viewport and zoom the fixed-size world to fit, so checkpoints
+  // shrink uniformly instead of overlapping each other on narrow screens.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setScale(Math.max(MIN_SCALE, el.clientWidth / WORLD_WIDTH));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const scaledHeight = Math.round(WORLD_HEIGHT * scale);
   // The scenery itself tells the story of the roadmap: a sunny summer start,
   // golden autumn woods with drifting leaves, and cold snowfields at the end.
-  return <section className="relative min-h-[3600px] overflow-hidden rounded-[28px] border border-[#d3e0d5] bg-[#eef3ee] shadow-[0_22px_50px_rgba(42,92,72,.12)]" aria-label="Your learning journey"><svg preserveAspectRatio="none" viewBox={`0 0 1200 ${WORLD_HEIGHT}`} className="absolute inset-0 h-full w-full" role="img" aria-label="PatternForge learning world: sunny meadows give way to autumn woods and snowy peaks as you descend"><Sky /><Clouds /><Mountains /><Hills /><SeasonalGround /><FallingLeaves /><Snowfall /><JourneyPath nodes={nodes} positions={positions} /><SceneDecorations /><Trees /></svg><div className="sticky top-5 z-20 mx-7 w-fit rounded-2xl border-2 border-b-4 border-white bg-white/95 px-5 py-3 backdrop-blur"><p className="text-[11px] font-extrabold uppercase tracking-[.18em] text-[#47756e]">PatternForge journey</p><h2 className="mt-1 text-xl font-black tracking-tight text-[#13283a]">One pattern at a time</h2></div>{units.map((unit) => <div key={unit.category} className="absolute left-1/2 z-10 -translate-x-1/2 text-center" style={{ top: `${(unit.y / WORLD_HEIGHT) * 100}%` }}><div className="rounded-2xl border-2 border-b-4 border-white/95 px-5 py-2" style={{ background: unit.tone }}><p className="text-[10px] font-extrabold uppercase tracking-[.15em] text-white/75">{unit.eyebrow}</p><p className="text-sm font-black text-white">{unit.title}</p></div></div>)}{nodes.map((node) => { const position = positions.get(node.id); return position ? <JourneyNode key={node.id} node={node} position={position} selected={selectedNodeId === node.id} onSelect={onSelect} worldHeight={WORLD_HEIGHT} /> : null; })}</section>;
+  return <div ref={containerRef} className="relative w-full overflow-x-auto overflow-y-hidden rounded-[28px] border border-[#d3e0d5] bg-[#eef3ee] shadow-[0_22px_50px_rgba(42,92,72,.12)]" style={{ height: scaledHeight }} aria-label="Your learning journey"><div className="relative" style={{ width: Math.round(WORLD_WIDTH * scale), height: scaledHeight }}><div className="absolute left-0 top-0 origin-top-left" style={{ width: WORLD_WIDTH, height: WORLD_HEIGHT, transform: `scale(${scale})` }}><svg width={WORLD_WIDTH} height={WORLD_HEIGHT} viewBox={`0 0 ${WORLD_WIDTH} ${WORLD_HEIGHT}`} className="absolute inset-0 left-0 top-0" role="img" aria-label="PatternForge learning world: sunny meadows give way to autumn woods and snowy peaks as you descend"><Sky /><Clouds /><Mountains /><Hills /><SeasonalGround /><FallingLeaves /><Snowfall /><JourneyPath nodes={nodes} positions={positions} /><SceneDecorations /><Trees /></svg><div className="sticky top-5 z-20 mx-7 w-fit rounded-2xl border-2 border-b-4 border-white bg-white/95 px-5 py-3 backdrop-blur" style={{ width: 'fit-content' }}><p className="text-[11px] font-extrabold uppercase tracking-[.18em] text-[#47756e]">PatternForge journey</p><h2 className="mt-1 text-xl font-black tracking-tight text-[#13283a]">One pattern at a time</h2></div>{units.map((unit) => <div key={unit.category} className="absolute left-1/2 z-10 -translate-x-1/2 text-center" style={{ top: unit.y }}><div className="rounded-2xl border-2 border-b-4 border-white/95 px-5 py-2" style={{ background: unit.tone }}><p className="text-[10px] font-extrabold uppercase tracking-[.15em] text-white/75">{unit.eyebrow}</p><p className="text-sm font-black text-white">{unit.title}</p></div></div>)}{nodes.map((node) => { const position = positions.get(node.id); return position ? <JourneyNode key={node.id} node={node} position={position} selected={selectedNodeId === node.id} onSelect={onSelect} worldHeight={WORLD_HEIGHT} /> : null; })}</div></div></div>;
 }

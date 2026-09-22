@@ -40,47 +40,6 @@ export class AssessmentService implements OnModuleInit {
     });
   }
 
-  async generateJourneySubtopic(userId: string, input: {
-    patternTitle: string;
-    existingSubtopics: string[];
-    difficulty: 'EASY' | 'MEDIUM' | 'HARD';
-    focus?: string;
-  }) {
-    if (!input.patternTitle?.trim()) throw new NotFoundException('A pattern is required to create a subtopic.');
-    const profile = await this.getProfile(userId);
-    let generated: { title: string; rationale?: string };
-    try {
-      generated = await this.aiOrchestrator.generateSubtopicDetails(input);
-    } catch (error: any) {
-      throw new BadGatewayException(error?.message || 'AI subtopic generation failed. Nothing was saved.');
-    }
-
-    const existingTitles = new Set(input.existingSubtopics.map((title) => title.trim().toLowerCase()));
-    if (existingTitles.has(generated.title.toLowerCase())) {
-      throw new BadGatewayException('AI returned an existing subtopic. Nothing was saved; please generate again.');
-    }
-
-    const record = this.curriculumRecord(profile.customCurriculum);
-    const generatedSubtopics = Array.isArray(record.generatedSubtopics) ? record.generatedSubtopics : [];
-    const subtopic = {
-      id: `ai-${generated.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now()}`,
-      title: generated.title,
-      rationale: generated.rationale,
-      patternTitle: input.patternTitle.trim(),
-      difficulty: input.difficulty,
-      masteryPct: 0,
-      status: 'UNEXPLORED',
-      problemCount: 0,
-      problems: [],
-      createdAt: new Date().toISOString(),
-    };
-    await this.prisma.userProfile.update({
-      where: { id: profile.id },
-      data: { customCurriculum: { ...record, generatedSubtopics: [...generatedSubtopics, subtopic] } },
-    });
-    return { subtopic };
-  }
-
   private curriculumRecord(value: unknown): Record<string, any> {
     return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
   }

@@ -1,0 +1,874 @@
+﻿# PatternForge Subtopic Seed Catalog
+
+Canonical subtopics grouped by the platform's main algorithm topics. Use these entries as the curated curriculum for topic-based practice generation.
+
+## Arrays
+
+- Array traversal
+- Array insertion/deletion
+- Array reversal
+- Array rotation
+- Array rearrangement
+- Array partitioning
+- Frequency arrays
+- Counting arrays
+- In-place operations
+- Subarrays
+- Maximum subarray
+- Minimum subarray
+- Circular arrays
+- Kadane's Algorithm
+- Circular Kadane
+- Dutch National Flag
+- Move Zeroes
+- Rearrangement of positives/negatives
+- Next Permutation
+- Product Except Self
+- Majority Element
+- Missing/Duplicate Elements
+- First Missing Positive
+- Leaders in Array
+- Stock Buy/Sell
+- Cyclic Sort
+- Index Mapping
+- Coordinate Compression
+- Difference Arrays
+- Sparse Arrays
+- Array Rotation Techniques
+
+## Hashing
+
+- HashMap
+- HashSet
+- Frequency Counting
+- Frequency Map
+- Duplicate Detection
+- Complement Lookup
+- First/Last Occurrence
+- Index Mapping
+- Grouping by Signature
+- Anagram Hashing
+- Subarray + HashMap
+- Prefix Sum + HashMap
+- Prefix XOR + HashMap
+- Zero-Sum Subarray
+- Target-Sum Subarray
+- Equal 0s and 1s
+- Longest Subarray via Hashing
+- Counting Subarrays via Hashing
+- String Hashing
+- Rolling Hash
+- Polynomial Hashing
+- Double Hashing
+- Rabin-Karp
+- Substring Hashing
+- State Hashing
+- Tuple/Pair Hashing
+- Custom Hashing
+
+## Strings
+
+- String Traversal
+- Character Frequency
+- Character Arrays
+- ASCII
+- String Manipulation
+- String Reversal
+- Word Reversal
+- String Rotation
+- String Compression
+- Run-Length Encoding
+- Palindrome
+- Anagram
+- Isomorphic Strings
+- Substrings
+- Subsequences
+- Prefix/Suffix
+- String Matching
+- Brute-Force Pattern Matching
+- KMP
+- LPS Array
+- Prefix Function
+- Z Algorithm
+- Rabin-Karp
+- Rolling Hash
+- Longest Common Prefix
+- Longest Palindromic Substring
+- Palindromic Subsequence
+- Palindrome Partitioning
+- Manacher's Algorithm
+- Lexicographical Ordering
+- Custom String Sorting
+- String + Sliding Window
+- String + Two Pointers
+- String + Stack
+- String + DP
+- String + Trie
+- Wildcard Matching
+- Word Pattern
+- Suffix Array
+- Suffix Tree
+- Suffix Automaton
+
+## Sorting
+
+- Bubble Sort
+- Selection Sort
+- Insertion Sort
+- Merge Sort
+- Quick Sort
+- Heap Sort
+- Counting Sort
+- Bucket Sort
+- Radix Sort
+- Comparator Sorting
+- Custom Sorting
+- Stable Sorting
+- In-Place Sorting
+- Multi-Key Sorting
+- Merge Two Sorted Arrays
+- Merge K Sorted Arrays
+- Merge Sort + Inversions
+- Reverse Pairs
+- Quickselect
+- Kth Smallest
+- Kth Largest
+- Sorting + Two Pointers
+- Sorting + Binary Search
+- Sorting + Greedy
+- Sorting + Intervals
+- Sorting + Hashing
+- Coordinate Compression
+
+## Prefix Sum
+
+- 1D Prefix Sum
+- Suffix Sum
+- Range Sum Query
+- Prefix Minimum
+- Prefix Maximum
+- Prefix Product
+- Suffix Product
+- Prefix XOR
+- Prefix Frequency
+- Difference Array
+- Range Updates
+- 2D Prefix Sum
+- Submatrix Sum
+- Rectangle Sum
+- Prefix Sum + HashMap
+- Prefix Sum + Binary Search
+- Prefix Sum + Two Pointers
+- Prefix Sum + Sliding Window
+- Zero-Sum Subarray
+- Target-Sum Subarray
+- Equal-Sum Subarrays
+- Prefix Modulo
+- Prefix Parity
+- Range Query Optimization
+
+## Two Pointers
+
+- Opposite-Direction Pointers
+- Same-Direction Pointers
+- Fast and Slow Pointers
+- Left/Right Pointers
+- Two Sum
+- Three Sum
+- Four Sum
+- K Sum
+- Pair Difference
+- Pair Closest to Target
+- Array Deduplication
+- Remove Elements
+- Move Zeroes
+- Dutch National Flag
+- Array Partitioning
+- Positive/Negative Partition
+- Palindrome Checking
+- String Comparison
+- Subsequence Checking
+- Linked List Cycle
+- Linked List Middle
+- Cycle Entry
+- Two Pointers + Sorting
+- Two Pointers + Sliding Window
+- Multi-Pointer Techniques
+
+## Binary Search
+
+- Basic Binary Search
+- Lower Bound
+- Upper Bound
+- First Occurrence
+- Last Occurrence
+- Search Insert Position
+- Count Occurrences
+- Search Range
+- Rotated Sorted Array
+- Rotated Array with Duplicates
+- Minimum in Rotated Array
+- Find Rotation Point
+- Peak Element
+- Bitonic Array Search
+- Binary Search on Answer
+- Minimum Feasible Answer
+- Maximum Feasible Answer
+- Capacity Problems
+- Allocation Problems
+- Scheduling Problems
+- Partition Problems
+- Integer Square Root
+- Nth Root
+- Floating-Point Binary Search
+- Search on Value Space
+- Search on Index Space
+- Search on Answer Space
+- Binary Search + Greedy
+- Binary Search + Prefix Sum
+- Binary Search + DP
+- Ternary Search
+- Parallel Binary Search
+- Binary Lifting
+
+## Sliding Window
+
+- Fixed-Size Window
+- Variable-Size Window
+- Expanding Window
+- Shrinking Window
+- Longest Valid Window
+- Shortest Valid Window
+- Maximum Window
+- Minimum Window
+- Fixed Window Sum
+- Fixed Window Frequency
+- Distinct Elements in Window
+- At Most K
+- At Least K
+- Exactly K
+- Longest Substring
+- Longest Substring Without Repeating Characters
+- Minimum Window Substring
+- Character Replacement
+- Anagram Windows
+- Permutation Windows
+- Frequency Map Window
+- Sliding Window + HashMap
+- Sliding Window + Two Pointers
+- Sliding Window + Deque
+- Monotonic Queue
+- Sliding Window Maximum
+- Sliding Window Minimum
+- Subarray Counting
+
+## Stack
+
+- Stack Operations
+- Balanced Parentheses
+- Valid Parentheses
+- Duplicate Brackets
+- Nested Brackets
+- Min Stack
+- Max Stack
+- Monotonic Stack
+- Increasing Stack
+- Decreasing Stack
+- Next Greater Element
+- Next Smaller Element
+- Previous Greater Element
+- Previous Smaller Element
+- Circular Next Greater
+- Stock Span
+- Largest Rectangle Histogram
+- Maximal Rectangle
+- Remove K Digits
+- Remove Adjacent Duplicates
+- Decode String
+- Backspace String
+- Expression Parsing
+- Infix Expression
+- Prefix Expression
+- Postfix Expression
+- Infix to Postfix
+- Postfix Evaluation
+- Prefix Evaluation
+- Operator Precedence
+- Stack + DFS
+- Stack Simulation
+- Recursion Simulation
+- Queue Using Stacks
+- Two-Stack Techniques
+
+## Queue / Deque
+
+- Queue Operations
+- Circular Queue
+- Queue Using Stacks
+- Stack Using Queues
+- BFS
+- Level Order Traversal
+- Multi-Source BFS
+- Shortest Path BFS
+- Deque Operations
+- Monotonic Deque
+- Increasing Deque
+- Decreasing Deque
+- Sliding Window Maximum
+- Sliding Window Minimum
+- 0-1 BFS
+- Monotonic Queue
+- Queue Simulation
+- Circular Buffer
+- Deque + DP
+- Deque + Sliding Window
+
+## Linked List
+
+- Singly Linked List
+- Doubly Linked List
+- Circular Linked List
+- Linked List Traversal
+- Insertion
+- Deletion
+- Searching
+- Reversal
+- Recursive Reversal
+- Reverse Sublist
+- Reverse K-Group
+- Pairwise Reversal
+- Fast/Slow Pointers
+- Middle Node
+- Cycle Detection
+- Cycle Entry
+- Cycle Length
+- Intersection of Lists
+- Merge Two Sorted Lists
+- Merge K Sorted Lists
+- Sort Linked List
+- Remove Nth Node
+- Palindrome Linked List
+- Reorder List
+- Rotate List
+- Partition List
+- Clone Random Pointer
+- Flatten Multilevel List
+- Dummy Node
+- Sentinel Node
+- LRU Cache
+- Multiple Pointer Techniques
+
+## Heap
+
+- Min Heap
+- Max Heap
+- Heapify
+- Build Heap
+- Heap Sort
+- Insert
+- Extract
+- Peek
+- Kth Smallest
+- Kth Largest
+- Top K
+- Top K Frequent
+- K Closest Elements
+- K Closest Points
+- K Smallest/Largest Pairs
+- Merge K Sorted Arrays
+- Merge K Sorted Lists
+- Smallest Range
+- Two Heaps
+- Median of Stream
+- Running Median
+- Sliding Window Median
+- Priority Queue
+- Custom Heap Comparator
+- Heap + HashMap
+- Heap + Greedy
+- Heap + Graph
+- Heap + Sliding Window
+- Scheduling with Heap
+- Lazy Deletion
+
+## Intervals
+
+- Interval Representation
+- Interval Sorting
+- Overlap Detection
+- Merge Intervals
+- Insert Interval
+- Interval Intersection
+- Interval Union
+- Interval Difference
+- Remove Intervals
+- Non-Overlapping Intervals
+- Minimum Interval Removal
+- Meeting Rooms
+- Minimum Meeting Rooms
+- Maximum Overlapping Intervals
+- Event Scheduling
+- Interval Scheduling
+- Weighted Interval Scheduling
+- Sweep Line
+- Start/End Events
+- Active Interval Counting
+- Interval + Heap
+- Interval + Greedy
+- Interval + Binary Search
+- Interval DP
+- Coordinate Compression
+
+## Recursion
+
+- Base Case
+- Recursive Case
+- Call Stack
+- Linear Recursion
+- Binary Recursion
+- Multiple Recursion
+- Tail Recursion
+- Tree Recursion
+- Divide and Conquer
+- Recursive Array Traversal
+- Recursive String Processing
+- Recursive Binary Search
+- Recursive Sorting
+- Recursive Tree Traversal
+- Recursive Linked List
+- Recursion Tree
+- Recursion + Memoization
+- Recursion + Backtracking
+- Recursion + DP
+- Stack Simulation
+- Recursion Depth
+- Tail Recursion Optimization
+
+## Trees
+
+- Binary Tree
+- N-ary Tree
+- Tree Traversal
+- Preorder
+- Inorder
+- Postorder
+- Level Order
+- Reverse Level Order
+- Zigzag Traversal
+- Boundary Traversal
+- Vertical Traversal
+- Diagonal Traversal
+- Tree Height
+- Tree Depth
+- Tree Diameter
+- Balanced Tree
+- Symmetric Tree
+- Identical Trees
+- Subtree Checking
+- Root-to-Leaf Paths
+- Path Sum
+- Maximum Path Sum
+- Lowest Common Ancestor
+- Binary Search Tree
+- BST Search
+- BST Insert
+- BST Delete
+- Validate BST
+- Kth Smallest
+- Kth Largest
+- Predecessor
+- Successor
+- BST LCA
+- Binary Tree LCA
+- Tree Views
+- Left View
+- Right View
+- Top View
+- Bottom View
+- Tree Serialization
+- Tree Deserialization
+- Tree Construction
+- Tree from Traversals
+- Tree Flattening
+- Euler Tour
+- Binary Lifting
+- Tree DP
+- Rerooting DP
+- Tree Distance
+- Tree Center
+- Tree Centroid
+- Heavy-Light Decomposition
+- AVL Trees
+- Red-Black Trees
+
+## Backtracking
+
+- Subsets
+- Subsequences
+- Permutations
+- Combinations
+- K-Combinations
+- K-Permutations
+- Combination Sum
+- N-Queens
+- Sudoku
+- Rat in Maze
+- Word Search
+- Graph Coloring
+- Palindrome Partitioning
+- Letter Combinations
+- Parentheses Generation
+- Constraint Satisfaction
+- Duplicate Handling
+- Backtracking Pruning
+- Branch and Bound
+- Constraint Propagation
+- Backtracking + Bitmask
+- Backtracking + DP
+- Backtracking + Trie
+- Backtracking + Memoization
+- State-Space Search
+
+## Graphs
+
+- Graph Representation
+- Adjacency Matrix
+- Adjacency List
+- Edge List
+- Directed Graph
+- Undirected Graph
+- Weighted Graph
+- Unweighted Graph
+- BFS
+- DFS
+- Iterative DFS
+- Recursive DFS
+- Multi-Source BFS
+- Connected Components
+- Cycle Detection
+- Bipartite Graph
+- Graph Coloring
+- Topological Sort
+- Kahn's Algorithm
+- DFS Topological Sort
+- DAG
+- DAG DP
+- Shortest Path
+- BFS Shortest Path
+- 0-1 BFS
+- Dijkstra
+- Bellman-Ford
+- Floyd-Warshall
+- Minimum Spanning Tree
+- Kruskal
+- Prim
+- Strongly Connected Components
+- Kosaraju
+- Tarjan
+- Bridges
+- Articulation Points
+- Euler Path
+- Euler Circuit
+- Hamiltonian Path
+- Network Flow
+- Max Flow
+- Min Cut
+- Ford-Fulkerson
+- Dinic
+- State-Space Graphs
+- Grid Graphs
+- Implicit Graphs
+- Graph Compression
+- Condensation Graph
+- DSU Graph Problems
+- Shortest Path with States
+- Dijkstra + States
+- BFS + States
+
+## Greedy
+
+- Activity Selection
+- Fractional Knapsack
+- Job Sequencing
+- Interval Scheduling
+- Non-Overlapping Intervals
+- Minimum Platforms
+- Jump Game
+- Gas Station
+- Candy Distribution
+- Huffman Coding
+- Greedy + Sorting
+- Greedy + Heap
+- Greedy + Intervals
+- Greedy + Two Pointers
+- Greedy + Binary Search
+- Greedy + DP
+- Greedy + Union Find
+- Deadline Scheduling
+- Resource Allocation
+- Exchange Argument
+- Greedy Proof
+- Local Optimal Choice
+- Matroid Concepts
+
+## Union Find
+
+- DSU Basics
+- Find
+- Union
+- Parent Array
+- Path Compression
+- Union by Rank
+- Union by Size
+- Connected Components
+- Dynamic Connectivity
+- Cycle Detection
+- Kruskal's Algorithm
+- Component Size
+- Largest Component
+- Connectivity Queries
+- Offline DSU
+- DSU on Grid
+- Number of Islands
+- Dynamic Islands
+- Account Merging
+- Weighted DSU
+- Parity DSU
+- DSU Rollback
+- Persistent DSU
+
+## Dynamic Programming
+
+- DP State
+- DP Transition
+- Base Cases
+- Memoization
+- Tabulation
+- Space Optimization
+- 1D DP
+- 2D DP
+- Grid DP
+- Knapsack DP
+- 0/1 Knapsack
+- Unbounded Knapsack
+- Bounded Knapsack
+- Subset Sum
+- Partition DP
+- Coin Change
+- Rod Cutting
+- LCS
+- Longest Common Substring
+- Edit Distance
+- Distinct Subsequences
+- Word Break
+- LIS
+- Number of LIS
+- Bitonic Subsequence
+- Maximum Sum Increasing Subsequence
+- Interval DP
+- Matrix Chain Multiplication
+- Burst Balloons
+- Palindrome DP
+- Tree DP
+- Graph DP
+- DAG DP
+- Bitmask DP
+- TSP DP
+- Digit DP
+- State Machine DP
+- Stock DP
+- DP + Binary Search
+- DP + Prefix Sum
+- DP + Monotonic Queue
+- DP + Deque
+- DP + Segment Tree
+- DP + Fenwick Tree
+- Divide and Conquer DP
+- Knuth Optimization
+- Convex Hull Trick
+- Li Chao Tree
+- Bitset DP
+- Rerooting DP
+
+## Trie
+
+- Trie Basics
+- Trie Node
+- Trie Insertion
+- Trie Search
+- Prefix Search
+- Prefix Frequency
+- Longest Common Prefix
+- Autocomplete
+- Dictionary
+- Word Search
+- Word Replacement
+- Character Trie
+- Binary Trie
+- Compressed Trie
+- Radix Tree
+- Maximum XOR
+- Trie + DFS
+- Trie + Backtracking
+- Trie + DP
+- Trie + Bit Manipulation
+- Persistent Trie
+- Aho-Corasick
+
+## Bit Manipulation
+
+- Bitwise AND
+- Bitwise OR
+- Bitwise XOR
+- Bitwise NOT
+- Left Shift
+- Right Shift
+- Bit Checking
+- Set Bit
+- Clear Bit
+- Toggle Bit
+- Extract Bits
+- Bit Masking
+- Odd/Even
+- Power of Two
+- Count Set Bits
+- Hamming Distance
+- Single Number
+- Missing Number
+- XOR Cancellation
+- Rightmost Set Bit
+- Lowest Set Bit
+- Highest Set Bit
+- Clear Lowest Set Bit
+- Subset Masks
+- Submask Enumeration
+- Bitmask DP
+- State Compression
+- Maximum XOR
+- Binary Trie
+- XOR Basis
+- Linear Basis
+- Gray Code
+- Bitset Optimization
+- SOS DP
+- Fast Subset Transform
+
+## Advanced Patterns & Sums
+
+- Advanced Array Patterns
+- Difference Array
+- Coordinate Compression
+- Sweep Line
+- Offline Queries
+- Mo's Algorithm
+- Meet in the Middle
+- Prefix XOR
+- Range Queries
+- Range Updates
+- Advanced Data Structures
+- Fenwick Tree
+- Segment Tree
+- Lazy Propagation
+- Sparse Table
+- Merge Sort Tree
+- Wavelet Tree
+- Persistent Segment Tree
+- Persistent Trie
+- Treap
+- Splay Tree
+- Ordered Set
+- Ordered Map
+- Multiset
+- Policy-Based Data Structures
+- Advanced Graph
+- SCC
+- Bridges
+- Articulation Points
+- Euler Tour
+- Binary Lifting
+- LCA
+- Heavy-Light Decomposition
+- Centroid Decomposition
+- Rerooting
+- Tree Hashing
+- Network Flow
+- Max Flow
+- Min Cut
+- Dinic
+- Min-Cost Max-Flow
+- Advanced Strings
+- KMP
+- Z Algorithm
+- Rabin-Karp
+- Rolling Hash
+- Double Hash
+- Manacher
+- Aho-Corasick
+- Suffix Array
+- LCP Array
+- Suffix Tree
+- Suffix Automaton
+- Number Theory
+- GCD
+- LCM
+- Euclidean Algorithm
+- Extended Euclidean Algorithm
+- Modular Arithmetic
+- Modular Inverse
+- Fast Exponentiation
+- Fermat's Little Theorem
+- Euler's Theorem
+- Euler Phi
+- Chinese Remainder Theorem
+- Prime Numbers
+- Sieve of Eratosthenes
+- Linear Sieve
+- Segmented Sieve
+- Prime Factorization
+- Smallest Prime Factor
+- Divisors
+- Divisor Count
+- Divisor Sum
+- Combinatorics
+- Permutations
+- Combinations
+- nCr
+- Pascal Triangle
+- Factorials
+- Modular Combinations
+- Catalan Numbers
+- Inclusion-Exclusion
+- Derangements
+- Advanced Sum / Counting
+- Two Sum
+- Three Sum
+- Four Sum
+- K Sum
+- Pair Counting
+- Triplet Counting
+- Subarray Sum
+- Prefix Sum + Hashing
+- Prefix XOR
+- Count Inversions
+- Reverse Pairs
+- Count Smaller
+- Count Greater
+- Range Sum Queries
+- 2D Range Sum
+- Offline Range Queries
+- Mo's Algorithm
+- Computational Geometry
+- Points
+- Vectors
+- Distance
+- Dot Product
+- Cross Product
+- Orientation
+- Collinearity
+- Line Intersection
+- Segment Intersection
+- Polygon Area
+- Shoelace Formula
+- Convex Hull
+- Closest Pair of Points
+- Sweep Line Geometry

@@ -5,7 +5,7 @@ PatternForge AI is a thinking-first coding practice workspace for learning data-
 ## What is included
 
 - Visual learning journey with prerequisite paths and topic detail drawers
-- AI-generated problems and subtopics for targeted practice
+- Curated algorithm subtopics with AI-generated problems for targeted practice
 - Pattern Library with flip cards and SuperMemo-2 review ratings
 - Corporate assessment arena for Google, Amazon, Meta, and Microsoft-style drills
 - Mistake Intelligence dashboard for assessment and execution analytics

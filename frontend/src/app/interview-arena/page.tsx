@@ -14,6 +14,7 @@ import {
   Brain,
   Flame,
 } from 'lucide-react';
+import PatternForgeNavigation from '../../components/PatternForgeNavigation';
 
 interface CorporateOa {
   id: string;
@@ -95,7 +96,8 @@ export default function InterviewArenaPage() {
   return (
     <div className="h-screen overflow-hidden bg-[#f8f5ed] text-[#17263a] font-sans selection:bg-amber-500/30 selection:text-amber-900">
       <div className="flex h-full">
-        <aside className="hidden w-64 shrink-0 flex-col justify-between border-r-2 border-[#e8e1d3] bg-[#fffdf8] p-6 lg:flex">
+        <PatternForgeNavigation statusLabel="Assessment mode" statusValue="OA" />
+        <aside className="hidden">
           <div className="space-y-8">
             <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2.5 px-1 text-left">
               <span className="grid h-9 w-9 place-items-center rounded-xl border-2 border-b-4 border-orange-600/40 bg-gradient-to-tr from-orange-500 to-amber-300 text-white"><Flame className="h-5 w-5 fill-white" /></span>
@@ -111,7 +113,7 @@ export default function InterviewArenaPage() {
           <div className="space-y-3.5"><div className="space-y-3 rounded-3xl border-2 border-b-4 border-[#e8e1d3] bg-white p-4"><div className="flex items-center justify-between text-xs font-semibold text-slate-700"><span className="flex items-center gap-2"><Flame className="h-4 w-4 fill-amber-500 text-amber-500" />7 Day Streak</span><span className="rounded-full border-2 border-[#f6d89b] bg-[#fff1d5] px-2 py-0.5 font-mono text-[10px] font-bold text-[#c56a17]">Active</span></div><div className="flex items-center justify-between border-t-2 border-[#eee7da] pt-2.5 text-xs text-slate-500"><span>Assessment mode</span><span className="font-mono text-sm font-bold text-[#d97717]">OA</span></div></div><div className="flex items-center justify-between rounded-2xl border-2 border-b-4 border-[#e8e1d3] bg-white p-2.5"><div className="flex items-center gap-2.5"><div className="grid h-7 w-7 place-items-center rounded-full border-2 border-b-4 border-amber-600/50 bg-gradient-to-tr from-amber-500 to-amber-300 text-xs font-black text-slate-950">P</div><span className="text-xs font-bold text-slate-700">Pattern learner</span></div><span className="h-2 w-2 rounded-full bg-emerald-400" /></div></div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden pt-16 lg:pt-0">
           <header className="flex shrink-0 items-center justify-between border-b-2 border-[#e8e1d3] bg-[#fffdf8]/90 px-5 py-4 backdrop-blur-xl sm:px-8">
             <div><h1 className="flex items-center gap-2 text-lg font-black tracking-tight text-[#17263a]"><Building2 className="h-5 w-5 text-[#e67b1f]" />Interview Arena</h1><p className="text-xs font-medium text-slate-400">Practice under the pressure of a real technical screen</p></div>
             <button onClick={() => router.push('/dashboard')} className="hidden items-center gap-1.5 rounded-2xl border-2 border-b-4 border-[#e3d8c8] bg-white px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-slate-700 transition-all hover:bg-[#fffaf0] active:translate-y-[2px] active:border-b-2 sm:flex"><ArrowLeft className="h-4 w-4" />Dashboard</button>
@@ -142,8 +144,8 @@ export default function InterviewArenaPage() {
                       key={oa.id}
                       onClick={() => setSelectedOa(oa)}
                       className={`p-5 rounded-2xl border transition cursor-pointer flex flex-col justify-between space-y-4 ${isSelected
-                          ? 'bg-[#fffdf8] border-2 border-b-4 border-amber-500'
-                          : 'bg-white border-2 border-b-4 border-[#e8e1d3] hover:border-[#d9cba8]'
+                        ? 'bg-[#fffdf8] border-2 border-b-4 border-amber-500'
+                        : 'bg-white border-2 border-b-4 border-[#e8e1d3] hover:border-[#d9cba8]'
                         }`}
                     >
                       <div className="space-y-2">

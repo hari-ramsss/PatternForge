@@ -404,6 +404,9 @@ Analyze their input and generate a complete, structured problem definition that 
 }
 
 ### CRITICAL FORMATTING & LEETCODE COMPLIANCE RULES:
+0. **Curriculum relevance:** The user prompt contains a curriculum contract. Treat its topic, subtopic, canonical reference, and prior titles as binding. The generated problem must exercise the exact subtopic, not merely the broader topic.
+0.1 **No repetition:** Never reuse or lightly rename a title listed as previously generated. Change the input model, constraints, or required operation enough to create a genuinely distinct problem while preserving the same algorithmic skill.
+0.2 **Standard naming:** Prefer an established LeetCode problem title and standard problem shape when the contract supplies a canonical reference. Do not output vague titles such as "Advanced Tree Challenge", "Array Task", or "Practice Problem".
 1. **Description Content:** Focus purely on the problem statement narrative, definitions, and operational rules. Use clean Markdown lines and paragraphs. Avoid embedding constraints or examples in the description body.
 2. **Rich Examples Count:** Generate at least 2 or 3 distinct examples (with varying inputs, edge cases, and sizes) to illustrate different problem behaviors.
 3. **Trace Explanations:** The "explanation" field for each example must be thorough. Explain the step-by-step state changes of any arrays, queues, maps, shelves, pointers, or counters. Detail *why* the output is returned.
@@ -1501,73 +1504,6 @@ export class AiOrchestratorService {
     }
 
     throw new Error('AI problem generation is unavailable. No problem was created.');
-  }
-
-  /**
-   * Produces one focused learning subtopic. This deliberately has no local
-   * suggestion or deterministic fallback: a failed provider must be visible to
-   * the learner rather than looking like an AI-generated result.
-   */
-  async generateSubtopicDetails(input: {
-    patternTitle: string;
-    existingSubtopics: string[];
-    difficulty: 'EASY' | 'MEDIUM' | 'HARD';
-    focus?: string;
-  }): Promise<{ title: string; rationale?: string }> {
-    const prompt = `You design concise curriculum subtopics for an algorithm-learning product.
-
-Pattern: ${input.patternTitle}
-Existing subtopics: ${input.existingSubtopics.join(', ') || 'None'}
-Target difficulty: ${input.difficulty}
-Learner request (optional): ${input.focus || 'Choose the most valuable missing focus.'}
-
-Return raw JSON only, exactly: {"title":"...","rationale":"..."}.
-The title must be a distinct, specific algorithmic skill under the supplied pattern, 2-7 words, and must not duplicate or closely rephrase an existing subtopic. Do not include a problem statement, generic study advice, markdown, or a fallback title.`;
-    const groqKey = process.env.GROQ_API_KEY || '';
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-
-    const parseResult = (text: string) => {
-      const result = JSON.parse(text.trim());
-      if (!result || typeof result.title !== 'string' || result.title.trim().length < 3) {
-        throw new Error('AI returned an invalid subtopic.');
-      }
-      return { title: result.title.trim(), rationale: typeof result.rationale === 'string' ? result.rationale.trim() : undefined };
-    };
-
-    if (groqKey) {
-      try {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
-          body: JSON.stringify({
-            model: 'openai/gpt-oss-120b',
-            messages: [{ role: 'user', content: prompt }],
-            response_format: { type: 'json_object' }, temperature: 0.35,
-          }),
-        });
-        if (response.ok) return parseResult((await response.json()).choices?.[0]?.message?.content || '');
-        this.logger.warn(`Groq subtopic generation returned ${response.status}. Trying Gemini...`);
-      } catch (err: any) {
-        this.logger.warn(`Groq subtopic generation failed: ${err.message}. Trying Gemini...`);
-      }
-    }
-
-    if (geminiKey) {
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiKey}`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: 'application/json', temperature: 0.35 },
-          }),
-        });
-        if (response.ok) return parseResult((await response.json()).candidates?.[0]?.content?.parts?.[0]?.text || '');
-        this.logger.warn(`Gemini subtopic generation returned ${response.status}.`);
-      } catch (err: any) {
-        this.logger.warn(`Gemini subtopic generation failed: ${err.message}.`);
-      }
-    }
-
-    throw new Error('AI subtopic generation is unavailable. No subtopic was created.');
   }
 
   async analyzeSubmissionCode(problem: any, code: string, language: string): Promise<AIAnalysisResult> {

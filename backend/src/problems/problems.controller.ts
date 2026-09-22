@@ -16,6 +16,11 @@ export class ProblemsController {
     return this.problemsService.findAll(req.user.id);
   }
 
+  @Get('curriculum/subtopics')
+  async getCurriculum() {
+    return this.problemsService.getCurriculum();
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post('sync/:slug')
   async syncProblem(@Param('slug') slug: string) {
@@ -46,6 +51,23 @@ export class ProblemsController {
         throw error;
       }
     }
+  }
+
+  @Get(':id/diagrams')
+  async findDiagrams(@Param('id') id: string) {
+    return this.problemsService.findVisualDiagrams(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/diagrams')
+  async saveDiagram(@Param('id') id: string, @Body() body: {
+    exampleId: string;
+    kind: string;
+    label: string;
+    mermaid: string;
+    visualData?: Record<string, unknown>;
+  }) {
+    return this.problemsService.saveVisualDiagram(id, body);
   }
 
   @Delete(':id')

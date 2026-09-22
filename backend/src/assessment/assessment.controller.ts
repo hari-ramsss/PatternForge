@@ -17,22 +17,6 @@ export class AssessmentController {
     return this.assessmentService.updateCurriculum(req.user.id, curriculum);
   }
 
-  @Post('journey-subtopics/generate')
-  async generateJourneySubtopic(
-    @Request() req,
-    @Body('patternTitle') patternTitle: string,
-    @Body('existingSubtopics') existingSubtopics: string[] = [],
-    @Body('difficulty') difficulty: 'EASY' | 'MEDIUM' | 'HARD' = 'MEDIUM',
-    @Body('focus') focus?: string,
-  ) {
-    return this.assessmentService.generateJourneySubtopic(req.user.id, {
-      patternTitle,
-      existingSubtopics: Array.isArray(existingSubtopics) ? existingSubtopics : [],
-      difficulty,
-      focus,
-    });
-  }
-
   @Post('submit-quiz')
   async submitQuiz(
     @Request() req,

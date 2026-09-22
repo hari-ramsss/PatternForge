@@ -1,4 +1,5 @@
 import { BadGatewayException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiOrchestratorService } from '../assessment/ai-orchestrator.service';
 
@@ -8,6 +9,20 @@ export class ProblemsService {
     private prisma: PrismaService,
     private aiOrchestrator: AiOrchestratorService,
   ) {}
+
+  async getCurriculum() {
+    return this.prisma.curriculumSubtopic.findMany({
+      orderBy: [{ topic: 'asc' }, { sortOrder: 'asc' }],
+      select: {
+        id: true,
+        topic: true,
+        title: true,
+        sortOrder: true,
+        canonicalSlug: true,
+        canonicalTitle: true,
+      },
+    });
+  }
 
   async findAll(userId?: string) {
     const problems = await this.prisma.problem.findMany({
@@ -49,6 +64,7 @@ export class ProblemsService {
           constraints: true,
           starterCodes: true,
           testCases: true,
+          visualDiagrams: true,
         },
       });
     }
@@ -60,6 +76,7 @@ export class ProblemsService {
           constraints: true,
           starterCodes: true,
           testCases: true,
+          visualDiagrams: true,
         },
       });
       problem = allProblems.find((p) => this.toProblemSlug(p.title) === requestedSlug);
@@ -94,6 +111,48 @@ export class ProblemsService {
     return problem;
   }
 
+  async findVisualDiagrams(id: string) {
+    const problem = await this.resolveProblem(id);
+    return this.prisma.problemVisualDiagram.findMany({
+      where: { problemId: problem.id },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  async saveVisualDiagram(id: string, data: {
+    exampleId: string;
+    kind: string;
+    label: string;
+    mermaid: string;
+    visualData?: Record<string, unknown>;
+  }) {
+    const problem = await this.resolveProblem(id);
+    const example = await this.prisma.problemExample.findFirst({
+      where: { id: data.exampleId, problemId: problem.id },
+    });
+    if (!example) throw new NotFoundException('Example not found');
+    const visualData = (data.visualData ?? {}) as Prisma.InputJsonValue;
+
+    return this.prisma.problemVisualDiagram.upsert({
+      where: { problemId_exampleId: { problemId: problem.id, exampleId: data.exampleId } },
+      create: { problemId: problem.id, exampleId: data.exampleId, kind: data.kind, label: data.label, mermaid: data.mermaid, visualData },
+      update: { kind: data.kind, label: data.label, mermaid: data.mermaid, visualData },
+    });
+  }
+
+  private async resolveProblem(id: string) {
+    const requestedSlug = this.toProblemSlug(id);
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const byId = uuidRegex.test(id)
+      ? await this.prisma.problem.findUnique({ where: { id } })
+      : null;
+    const problem = byId ?? (await this.prisma.problem.findFirst({
+      where: { title: { equals: requestedSlug.replace(/-/g, ' '), mode: 'insensitive' } },
+    }));
+    if (!problem) throw new NotFoundException('Problem not found');
+    return problem;
+  }
+
   private toProblemSlug(value: string): string {
     return value
       .normalize('NFKD')
@@ -121,11 +180,39 @@ export class ProblemsService {
   }
 
   async createProblemWithAi(prompt: string, pattern?: string, subtopic?: string) {
+    const curriculum = pattern && subtopic
+      ? await this.prisma.curriculumSubtopic.findFirst({
+        where: { topic: { equals: pattern, mode: 'insensitive' }, title: { equals: subtopic, mode: 'insensitive' } },
+      })
+      : null;
+    const existingProblems = pattern && subtopic
+      ? await this.prisma.problem.findMany({
+        where: { topic: { equals: pattern, mode: 'insensitive' }, subtopic: { equals: subtopic, mode: 'insensitive' } },
+        select: { title: true },
+      })
+      : [];
+    const generationContract = `
+CURRICULUM CONTRACT (must follow):
+- Topic: ${pattern || 'Use the requested topic'}
+- Subtopic: ${subtopic || 'Use the requested subtopic'}
+- This must be a standalone LeetCode-style problem that directly tests this exact subtopic.
+- Use a standard LeetCode problem title when a canonical title exists; do not invent a vague title.
+- Do not repeat any previously generated title for this topic/subtopic: ${existingProblems.map((problem) => problem.title).join(', ') || 'None'}
+- Return a meaningfully different problem, not a renamed copy of an existing one.
+${curriculum?.canonicalTitle ? `- Canonical reference problem for this skill: ${curriculum.canonicalTitle} (${curriculum.canonicalSlug}). Use it as the concept anchor, then create a distinct practice problem.` : ''}`;
     let data: any;
     try {
-      data = await this.aiOrchestrator.generateProblemDetails(prompt);
+      data = await this.aiOrchestrator.generateProblemDetails(`${prompt}\n${generationContract}`);
     } catch (error) {
       throw new BadGatewayException('AI generation did not return a problem. Nothing was saved.');
+    }
+
+    if (!data?.title || typeof data.title !== 'string') {
+      throw new BadGatewayException('AI returned a problem without a valid title. Nothing was saved.');
+    }
+    const duplicate = existingProblems.some((problem) => problem.title.trim().toLowerCase() === data.title.trim().toLowerCase());
+    if (duplicate) {
+      throw new BadGatewayException('AI returned a problem that already exists for this subtopic. Please generate again.');
     }
 
     // 1. Create the Problem record

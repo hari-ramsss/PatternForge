@@ -6,13 +6,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home,
   BookOpen,
-  Flag,
   Compass,
   Star,
   BrainCircuit,
   Zap,
   Flame,
-  Plus,
   RefreshCw,
   Sparkles,
   Layers,
@@ -22,6 +20,7 @@ import {
 import DeleteConfirmationModal from '../../features/workspace/components/DeleteConfirmationModal';
 import AlgorithmJourneyMap from '../../components/AlgorithmJourney/AlgorithmJourneyMap';
 import { JourneyNode } from '../../components/AlgorithmJourney/JourneyNodeCard';
+import PatternForgeNavigation from '../../components/PatternForgeNavigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
@@ -407,10 +406,10 @@ const INITIAL_JOURNEY_NODES: JourneyNode[] = [
 export default function PatternForgeHomePage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
-  const [profile, setProfile] = useState<any>(null);
   const [problems, setProblems] = useState<any[]>([]);
-  const [activeNav, setActiveNav] = useState<'journey' | 'library' | 'oa' | 'mistakes'>('journey');
+  const [curriculum, setCurriculum] = useState<Array<{ id: string; topic: string; title: string; sortOrder: number; canonicalSlug?: string | null; canonicalTitle?: string | null }>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [streak, setStreak] = useState<{ currentStreak: number; longestStreak: number; solvedToday: boolean; lastActiveDate: string | null } | null>(null);
 
   // Deletion modal state
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
@@ -436,8 +435,6 @@ export default function PatternForgeHomePage() {
           const data = await res.json();
           if (!data.onboarded) {
             router.push('/assessment');
-          } else {
-            setProfile(data);
           }
         }
       } catch (err) {
@@ -461,8 +458,35 @@ export default function PatternForgeHomePage() {
       }
     };
 
+    const fetchCurriculum = async () => {
+      try {
+        const res = await fetch(`${API_URL}/problems/curriculum/subtopics`);
+        if (res.ok) {
+          const data = await res.json();
+          setCurriculum(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch curriculum:', err);
+      }
+    };
+
+    const fetchStreak = async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/streak`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          setStreak(await res.json());
+        }
+      } catch (err) {
+        console.error('Failed to fetch streak:', err);
+      }
+    };
+
     fetchProfile();
     fetchProblems();
+    fetchCurriculum();
+    fetchStreak();
   }, [router]);
 
   const solvedCount = problems.filter((p) => p.solved).length;
@@ -506,26 +530,6 @@ export default function PatternForgeHomePage() {
     }
   };
 
-  const handleGenerateAiSubtopic = async (patternTitle: string, existingSubtopics: string[], difficulty: 'EASY' | 'MEDIUM' | 'HARD', focus: string) => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`${API_URL}/assessment/journey-subtopics/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ patternTitle, existingSubtopics, difficulty, focus: focus || undefined }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'AI could not create a subtopic. Nothing was added.');
-    if (!data.subtopic?.id || !data.subtopic?.title) throw new Error('AI returned an invalid subtopic. Nothing was added.');
-    setProfile((current: any) => ({
-      ...current,
-      customCurriculum: {
-        ...(current?.customCurriculum && typeof current.customCurriculum === 'object' ? current.customCurriculum : {}),
-        generatedSubtopics: [...(current?.customCurriculum?.generatedSubtopics || []), data.subtopic],
-      },
-    }));
-    return data.subtopic;
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#f8f5ed] flex flex-col items-center justify-center font-sans text-[#17263a] space-y-7">
@@ -559,136 +563,20 @@ export default function PatternForgeHomePage() {
     );
   }
 
-  const navItems = [
-    { id: 'journey', label: 'Journey', icon: CompassIcon, path: '/dashboard' },
-    { id: 'library', label: 'Pattern Library', icon: BookOpen, path: '/library' },
-    { id: 'oa', label: 'Practice', icon: Flag, path: '/interview-arena' },
-    { id: 'mistakes', label: 'Insights', icon: BrainCircuit, path: '/mistakes' },
-  ];
-
   return (
     <div className="h-screen bg-[#f8f5ed] text-[#17263a] font-sans flex overflow-hidden antialiased selection:bg-amber-500/30 selection:text-amber-900">
-      {/* ================= LEFT SIDEBAR (240px) ================= */}
-      <aside className="w-64 bg-[#fffdf8] border-r-2 border-[#e8e1d3] flex flex-col justify-between p-6 shrink-0 sticky top-0 h-screen z-30">
-        <div className="space-y-8">
-          {/* PatternForge Brand Header with subtle hover bounce */}
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="flex items-center gap-2.5 px-1 cursor-pointer"
-            onClick={() => router.push('/dashboard')}
-          >
-            <div className="w-9 h-9 rounded-xl border-2 border-b-4 border-orange-600/40 bg-gradient-to-tr from-orange-500 to-amber-300 flex items-center justify-center text-white">
-              <Flame className="w-5 h-5 fill-white" />
-            </div>
-            <span className="text-xl font-black tracking-tight text-[#17263a]">
-              Pattern<span className="text-[#e67b1f]">Forge</span>
-            </span>
-          </motion.div>
-
-          {/* Navigation Items with Framer Motion layoutId Active Pill */}
-          <nav className="space-y-2.5">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeNav === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveNav(item.id as any);
-                    if (item.path && item.path !== '/dashboard') {
-                      router.push(item.path);
-                    }
-                  }}
-                  className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-extrabold uppercase tracking-wide transition-colors z-10 ${
-                    isActive ? 'text-[#9b5416]' : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeNavPill"
-                      className="absolute inset-0 rounded-2xl bg-[#fff0c9] border-2 border-b-4 border-[#f0cd7a] -z-10"
-                      transition={{ type: 'spring', stiffness: 450, damping: 32 }}
-                    />
-                  )}
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-[#e67b1f]' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Bottom User Profile & Streak Widget */}
-        <div className="space-y-3.5">
-          <div className="bg-white border-2 border-b-4 border-[#e8e1d3] rounded-3xl p-4 space-y-3">
-            <div className="flex items-center justify-between text-xs text-slate-700 font-extrabold uppercase tracking-wide">
-              <span className="flex items-center gap-2">
-                <motion.span
-                  animate={{ scale: [1, 1.18, 1], rotate: [-4, 4, -4] }}
-                  transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
-                  className="inline-block"
-                >
-                  <Flame className="w-4 h-4 text-amber-500 fill-amber-500" />
-                </motion.span>
-                7 Day Streak
-              </span>
-              <span className="text-[#c56a17] font-mono text-[10px] font-bold bg-[#fff1d5] border-2 border-[#f6d89b] px-2 py-0.5 rounded-full">
-                Active
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-xs text-slate-500 border-t-2 border-[#eee7da] pt-2.5">
-              <span>Total XP</span>
-              <span className="font-black text-[#d97717] text-sm">
-                {currentXp} XP
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white border-2 border-b-4 border-[#e8e1d3] hover:border-[#d9cba8] transition">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full border-2 border-b-4 border-amber-600/50 bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 flex items-center justify-center text-xs font-black">
-                {userName.charAt(0)}
-              </div>
-              <span className="text-xs font-bold text-slate-700 truncate max-w-[120px]">{userName}</span>
-            </div>
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          </div>
-        </div>
-      </aside>
-
+      <PatternForgeNavigation userName={userName} statusLabel="Total XP" statusValue="" totalXp={currentXp} streak={streak} />
       {/* ================= MAIN CONTENT AREA ================= */}
-      <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden pt-16 lg:pt-0">
         {/* Top Header Bar with Frosted Glassmorphism */}
-        <header className="py-4 px-8 flex items-center justify-between bg-[#fffdf8]/90 border-b-2 border-[#e8e1d3] backdrop-blur-xl shrink-0 z-20">
-          <div>
-            <h1 className="text-lg font-black text-[#17263a] flex items-center gap-2 tracking-tight">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b-2 border-[#e8e1d3] bg-[#fffdf8]/90 px-4 py-4 backdrop-blur-xl sm:px-8">
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-lg font-black text-[#17263a] flex items-center gap-2 tracking-tight">
               Good morning, {userName}.
             </h1>
-            <p className="text-xs text-slate-400 font-medium">
+            <p className="max-w-full truncate text-xs text-slate-400 font-medium">
               Directed prerequisite DAG • Recognize patterns, master subtopics, practice AI drills
             </p>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => router.push('/dashboard/creator')}
-              className="px-4 py-2 bg-white hover:bg-[#fffaf0] border-2 border-b-4 border-[#e3d8c8] text-slate-700 rounded-2xl text-xs font-extrabold uppercase tracking-wide transition-all active:translate-y-[2px] active:border-b-2 flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4 text-amber-400" />
-              <span>AI Problem Creator</span>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => router.push('/interview-arena')}
-              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 border-2 border-b-4 border-amber-600/70 text-slate-950 rounded-2xl text-xs font-black uppercase tracking-wide transition-all active:translate-y-[2px] active:border-b-2 flex items-center gap-1.5"
-            >
-              <Flag className="w-4 h-4 fill-slate-950" />
-              <span>Launch OA Arena</span>
-            </motion.button>
           </div>
         </header>
 
@@ -697,10 +585,9 @@ export default function PatternForgeHomePage() {
           <AlgorithmJourneyMap
             initialNodes={INITIAL_JOURNEY_NODES}
             existingProblems={problems}
-            persistedSubtopics={profile?.customCurriculum?.generatedSubtopics || []}
+            curriculum={curriculum}
             onStartPractice={handleStartPractice}
             onGenerateAiProblem={handleGenerateAiProblem}
-            onGenerateAiSubtopic={handleGenerateAiSubtopic}
           />
         </main>
       </div>

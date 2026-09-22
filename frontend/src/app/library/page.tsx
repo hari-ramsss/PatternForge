@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Zap,
 } from 'lucide-react';
+import PatternForgeNavigation from '../../components/PatternForgeNavigation';
 
 interface PatternCard {
   id: string;
@@ -156,7 +157,8 @@ export default function PatternLibraryPage() {
   return (
     <div className="h-screen overflow-hidden bg-[#f8f5ed] text-[#17263a] font-sans selection:bg-amber-500/30 selection:text-amber-900">
       <div className="flex h-full">
-        <aside className="hidden w-64 shrink-0 flex-col justify-between border-r-2 border-[#e8e1d3] bg-[#fffdf8] p-6 lg:flex">
+        <PatternForgeNavigation statusLabel="Memory cards" statusValue={String(cards.length)} />
+        <aside className="hidden">
           <div className="space-y-8">
             <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2.5 px-1 text-left">
               <span className="grid h-9 w-9 place-items-center rounded-xl border-2 border-b-4 border-orange-600/40 bg-gradient-to-tr from-orange-500 to-amber-300 text-white"><Flame className="h-5 w-5 fill-white" /></span>
@@ -175,7 +177,7 @@ export default function PatternLibraryPage() {
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden pt-16 lg:pt-0">
           <header className="flex shrink-0 items-center justify-between border-b-2 border-[#e8e1d3] bg-[#fffdf8]/90 px-5 py-4 backdrop-blur-xl sm:px-8">
             <div><h1 className="flex items-center gap-2 text-lg font-black tracking-tight text-[#17263a]"><BookOpen className="h-5 w-5 text-[#e67b1f]" />Pattern Library</h1><p className="text-xs font-medium text-slate-400">Build durable recall for the patterns you are learning</p></div>
             <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-1.5 rounded-2xl border-2 border-b-4 border-amber-600/70 bg-gradient-to-r from-amber-500 to-amber-400 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-950 transition-all active:translate-y-[2px] active:border-b-2"><Plus className="h-4 w-4" /><span className="hidden sm:inline">New Pattern Card</span></button>
@@ -216,8 +218,8 @@ export default function PatternLibraryPage() {
                 <button
                   onClick={() => setFilter('all')}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${filter === 'all'
-                      ? 'bg-[#fff0c9] text-[#9b5416] border-2 border-b-4 border-[#f7d786]'
-                      : 'border-2 border-b-4 border-[#e8e1d3] bg-white text-slate-600 hover:text-slate-900 active:translate-y-[2px] active:border-b-2'
+                    ? 'bg-[#fff0c9] text-[#9b5416] border-2 border-b-4 border-[#f7d786]'
+                    : 'border-2 border-b-4 border-[#e8e1d3] bg-white text-slate-600 hover:text-slate-900 active:translate-y-[2px] active:border-b-2'
                     }`}
                 >
                   All Cards ({cards.length})
@@ -225,8 +227,8 @@ export default function PatternLibraryPage() {
                 <button
                   onClick={() => setFilter('due')}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${filter === 'due'
-                      ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 border-2 border-b-4 border-amber-600/70'
-                      : 'border-2 border-b-4 border-[#e8e1d3] bg-white text-slate-600 hover:text-slate-900 active:translate-y-[2px] active:border-b-2'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 border-2 border-b-4 border-amber-600/70'
+                    : 'border-2 border-b-4 border-[#e8e1d3] bg-white text-slate-600 hover:text-slate-900 active:translate-y-[2px] active:border-b-2'
                     }`}
                 >
                   <Clock className="w-3.5 h-3.5" />
@@ -235,8 +237,8 @@ export default function PatternLibraryPage() {
                 <button
                   onClick={() => setFilter('struggled')}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${filter === 'struggled'
-                      ? 'bg-rose-500 text-white border-2 border-b-4 border-rose-700'
-                      : 'border-2 border-b-4 border-[#e8e1d3] bg-white text-slate-600 hover:text-slate-900 active:translate-y-[2px] active:border-b-2'
+                    ? 'bg-rose-500 text-white border-2 border-b-4 border-rose-700'
+                    : 'border-2 border-b-4 border-[#e8e1d3] bg-white text-slate-600 hover:text-slate-900 active:translate-y-[2px] active:border-b-2'
                     }`}
                 >
                   <Flame className="w-3.5 h-3.5" />
