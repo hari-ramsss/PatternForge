@@ -8,7 +8,7 @@ export class ProblemsController {
   constructor(
     private problemsService: ProblemsService,
     private leetcodeSyncService: LeetcodeSyncService,
-  ) {}
+  ) { }
 
   @UseGuards(JwtAuthGuard)
   @Get()

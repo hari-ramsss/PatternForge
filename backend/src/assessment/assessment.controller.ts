@@ -5,7 +5,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 @Controller('assessment')
 @UseGuards(JwtAuthGuard)
 export class AssessmentController {
-  constructor(private assessmentService: AssessmentService) {}
+  constructor(private assessmentService: AssessmentService) { }
 
   @Get('profile')
   async getProfile(@Request() req) {

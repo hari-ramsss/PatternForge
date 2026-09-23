@@ -8,7 +8,7 @@ export class ProblemsService {
   constructor(
     private prisma: PrismaService,
     private aiOrchestrator: AiOrchestratorService,
-  ) {}
+  ) { }
 
   async getCurriculum() {
     return this.prisma.curriculumSubtopic.findMany({
@@ -20,6 +20,13 @@ export class ProblemsService {
         sortOrder: true,
         canonicalSlug: true,
         canonicalTitle: true,
+        problemAssignments: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            role: true,
+            problem: { select: { id: true, title: true, difficulty: true } },
+          },
+        },
       },
     });
   }
@@ -229,6 +236,25 @@ ${curriculum?.canonicalTitle ? `- Canonical reference problem for this skill: ${
         optimalSpace: data.optimalSpace || 'O(1)',
       }
     });
+
+    if (pattern && subtopic) {
+      const curriculumSubtopic = await this.prisma.curriculumSubtopic.findFirst({
+        where: {
+          topic: { equals: pattern, mode: 'insensitive' },
+          title: { equals: subtopic, mode: 'insensitive' },
+        },
+      });
+      if (curriculumSubtopic) {
+        await this.prisma.curriculumProblemAssignment.create({
+          data: {
+            curriculumSubtopicId: curriculumSubtopic.id,
+            problemId: problem.id,
+            role: 'GENERATED',
+            sortOrder: 1,
+          },
+        });
+      }
+    }
 
     // 2. Create examples
     if (data.examples && data.examples.length > 0) {

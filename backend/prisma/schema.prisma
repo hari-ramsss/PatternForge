@@ -22,6 +22,11 @@ enum VerdictStatus {
   PENDING
 }
 
+enum CurriculumProblemRole {
+  CANONICAL_SEED
+  GENERATED
+}
+
 model User {
   id            String            @id @default(uuid())
   email         String            @unique
@@ -80,12 +85,14 @@ model Problem {
   drafts         CodeDraft[]
   submissions    Submission[]
   canonicalForSubtopics CurriculumSubtopic[] @relation("CanonicalProblem")
+  curriculumAssignments CurriculumProblemAssignment[]
 
   @@map("problems")
 }
 
 model CurriculumSubtopic {
   id                 String   @id @default(uuid())
+  topicKey           String
   topic              String
   title              String
   sortOrder          Int
@@ -95,10 +102,26 @@ model CurriculumSubtopic {
   canonicalProblem   Problem? @relation("CanonicalProblem", fields: [canonicalProblemId], references: [id], onDelete: SetNull)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+  problemAssignments CurriculumProblemAssignment[]
 
-  @@unique([topic, title])
-  @@index([topic, sortOrder])
+  @@unique([topicKey, title])
+  @@index([topicKey, sortOrder])
   @@map("curriculum_subtopics")
+}
+
+model CurriculumProblemAssignment {
+  id                 String                 @id @default(uuid())
+  curriculumSubtopicId String
+  problemId          String
+  role               CurriculumProblemRole @default(CANONICAL_SEED)
+  sortOrder          Int                    @default(0)
+  curriculumSubtopic CurriculumSubtopic    @relation(fields: [curriculumSubtopicId], references: [id], onDelete: Cascade)
+  problem            Problem                @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  createdAt          DateTime               @default(now())
+
+  @@unique([curriculumSubtopicId, problemId])
+  @@index([problemId])
+  @@map("curriculum_problem_assignments")
 }
 
 model ProblemExample {

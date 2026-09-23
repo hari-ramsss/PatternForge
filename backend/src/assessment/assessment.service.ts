@@ -164,7 +164,7 @@ export class AssessmentService implements OnModuleInit {
         data: {
           scorePattern: { increment: 2 }
         }
-      }).catch(() => {});
+      }).catch(() => { });
 
       return {
         success: true,
@@ -205,7 +205,7 @@ export class AssessmentService implements OnModuleInit {
         data: {
           scoreObservation: { increment: 3 }
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     return result;
@@ -272,7 +272,7 @@ export class AssessmentService implements OnModuleInit {
           scoreOptimization: { increment: 3 },
           scorePattern: { increment: 3 }
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     return review;

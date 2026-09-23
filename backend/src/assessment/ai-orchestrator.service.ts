@@ -420,7 +420,7 @@ Analyze their input and generate a complete, structured problem definition that 
 
 class GroqProvider implements AIProvider {
   name = 'Groq';
-  constructor(private apiKey: string) {}
+  constructor(private apiKey: string) { }
 
   isConfigured() {
     return !!this.apiKey && this.apiKey.trim() !== '';
@@ -761,7 +761,7 @@ ${message}
 
 class GeminiProvider implements AIProvider {
   name = 'Gemini';
-  constructor(private apiKey: string) {}
+  constructor(private apiKey: string) { }
 
   isConfigured() {
     return !!this.apiKey && this.apiKey.trim() !== '';
@@ -1062,7 +1062,7 @@ ${code}
     for (const h of history) {
       historyText += `${h.role === 'user' ? 'Student' : 'Coach'}: ${h.content}\n`;
     }
-    
+
     const userPrompt = `
 SYSTEM INSTRUCTION:
 ${SYSTEM_PROMPT_COACH_CHAT_v1}
@@ -1157,7 +1157,7 @@ export class AiOrchestratorService {
           (signal) => provider.evaluateObservation(input, signal),
           provider.name
         );
-        
+
         if (this.validateObservationSchema(result)) {
           this.logger.log(`Observations evaluated successfully using ${provider.name}. Latency: ${latencyMs}ms. Retries: ${retries}`);
           return {
@@ -1364,8 +1364,8 @@ export class AiOrchestratorService {
       success: true,
       passed: isPassed,
       observations: 'Code runs through sandbox execution layers. Coding structure conforms to standard syntax layout.',
-      optimizationsPossible: isPassed 
-        ? 'Code matches target complexity boundaries. Make sure not to double iterate over lookup lists.' 
+      optimizationsPossible: isPassed
+        ? 'Code matches target complexity boundaries. Make sure not to double iterate over lookup lists.'
         : 'Look at the input index boundaries. Ensure mapping variables exist inside limits values.',
       debuggingAdvice: isPassed ? null : 'Failed runtime outputs indicate off-by-one or mismatched keys retrieval scopes.',
       scores: {
@@ -1649,7 +1649,7 @@ export class AiOrchestratorService {
         return { result, retries, latencyMs };
       } catch (err: any) {
         clearTimeout(timer);
-        
+
         const isTransient = this.isTransientError(err);
         if (isTransient && retries < 1) {
           retries++;

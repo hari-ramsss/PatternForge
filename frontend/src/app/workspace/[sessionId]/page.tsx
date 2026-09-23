@@ -583,16 +583,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
     queryFn: async () => {
       const res = await fetch(`${apiUrl}/problems/${problemId}`);
       if (!res.ok) throw new Error('Problem not found');
-      const data = await res.json();
-      // AI-generated problems may come back without examples/constraints/test
-      // cases — normalize so render-time .map/.find calls never crash.
-      return {
-        ...data,
-        examples: Array.isArray(data.examples) ? data.examples : [],
-        constraints: Array.isArray(data.constraints) ? data.constraints : [],
-        testCases: Array.isArray(data.testCases) ? data.testCases : [],
-        starterCodes: Array.isArray(data.starterCodes) ? data.starterCodes : [],
-      };
+      return res.json();
     },
   });
 
@@ -1069,16 +1060,16 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                             router.push(`/workspace/${p.id}`);
                           }}
                           className={`w-full text-left p-2 rounded-lg text-xs transition flex justify-between items-center ${problem.id === p.id
-                              ? 'bg-amber-50 text-amber-800 font-semibold'
-                              : 'hover:bg-stone-50 text-stone-600'
+                            ? 'bg-amber-50 text-amber-800 font-semibold'
+                            : 'hover:bg-stone-50 text-stone-600'
                             }`}
                         >
                           <span>{p.title}</span>
                           <span className={`text-[9px] font-bold ${p.difficulty === 'EASY'
-                              ? 'text-emerald-600'
-                              : p.difficulty === 'MEDIUM'
-                                ? 'text-amber-600'
-                                : 'text-red-600'
+                            ? 'text-emerald-600'
+                            : p.difficulty === 'MEDIUM'
+                              ? 'text-amber-600'
+                              : 'text-red-600'
                             }`}>{p.difficulty}</span>
                         </button>
                       ))}
@@ -1166,8 +1157,8 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
             {!isOaMode && <button
               onClick={() => setLeftTab('coach')}
               className={`py-3 px-1 border-b-2 transition flex items-center gap-1.5 ${leftTab === 'coach'
-                  ? 'border-amber-700 text-amber-800 font-bold'
-                  : 'border-transparent hover:text-stone-700'
+                ? 'border-amber-700 text-amber-800 font-bold'
+                : 'border-transparent hover:text-stone-700'
                 }`}
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
@@ -1206,8 +1197,8 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                   >
                     <div
                       className={`max-w-[88%] rounded-2xl p-4 shadow-2xs ${msg.role === 'user'
-                          ? 'bg-amber-600 text-white font-sans text-xs leading-relaxed rounded-br-xs'
-                          : 'bg-white border border-stone-200/80 text-stone-800 rounded-bl-xs'
+                        ? 'bg-amber-600 text-white font-sans text-xs leading-relaxed rounded-br-xs'
+                        : 'bg-white border border-stone-200/80 text-stone-800 rounded-bl-xs'
                         }`}
                     >
                       {msg.role === 'user' ? (
@@ -1297,8 +1288,8 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                   {/* Title & Metadata */}
                   <div className="mb-4 flex items-center gap-3">
                     <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${problem.difficulty === 'EASY' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                        problem.difficulty === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                          'bg-red-50 text-red-700 border border-red-100'
+                      problem.difficulty === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                        'bg-red-50 text-red-700 border border-red-100'
                       }`}>
                       {problem.difficulty}
                     </span>
@@ -1541,8 +1532,8 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                               key={tc}
                               onClick={() => setTargetTimeComplexity(tc)}
                               className={`px-2.5 py-1 text-[10px] rounded font-bold transition font-mono ${targetTimeComplexity === tc
-                                  ? 'bg-amber-50 text-stone-950'
-                                  : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+                                ? 'bg-amber-50 text-stone-950'
+                                : 'bg-stone-800 text-stone-400 hover:text-stone-200'
                                 }`}
                             >
                               {tc}
@@ -1558,8 +1549,8 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                               key={sc}
                               onClick={() => setTargetSpaceComplexity(sc)}
                               className={`px-2.5 py-1 text-[10px] rounded font-bold transition font-mono ${targetSpaceComplexity === sc
-                                  ? 'bg-amber-50 text-stone-950'
-                                  : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+                                ? 'bg-amber-50 text-stone-950'
+                                : 'bg-stone-800 text-stone-400 hover:text-stone-200'
                                 }`}
                             >
                               {sc}
@@ -1810,8 +1801,8 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                                 <button
                                   onClick={() => setActiveTestCaseIdx(idx)}
                                   className={`px-3 py-1.5 text-xs rounded-lg font-medium transition flex items-center gap-1.5 whitespace-nowrap ${activeTestCaseIdx === idx
-                                      ? 'bg-stone-800 text-amber-400 border border-amber-500/30'
-                                      : 'bg-stone-900/60 text-stone-400 hover:text-stone-200 border border-stone-800'
+                                    ? 'bg-stone-800 text-amber-400 border border-amber-500/30'
+                                    : 'bg-stone-900/60 text-stone-400 hover:text-stone-200 border border-stone-800'
                                     }`}
                                 >
                                   <span>{tc.label}</span>
@@ -1916,8 +1907,8 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                                     key={idx}
                                     onClick={() => setActiveResultCaseIdx(idx)}
                                     className={`px-3 py-1.5 text-xs rounded-lg font-medium transition flex items-center gap-1.5 whitespace-nowrap ${activeResultCaseIdx === idx
-                                        ? 'bg-stone-800 text-stone-200 border border-stone-700'
-                                        : 'bg-transparent text-stone-400 hover:text-stone-200 border border-transparent'
+                                      ? 'bg-stone-800 text-stone-200 border border-stone-700'
+                                      : 'bg-transparent text-stone-400 hover:text-stone-200 border border-transparent'
                                       }`}
                                   >
                                     <span className={`w-1.5 h-1.5 rounded-full ${tc.status === 'ACCEPTED' ? 'bg-emerald-500' : 'bg-red-500'
