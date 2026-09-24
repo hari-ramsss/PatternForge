@@ -6,13 +6,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home,
   BookOpen,
-  Flag,
   Compass,
   Star,
   BrainCircuit,
   Zap,
   Flame,
-  Plus,
   RefreshCw,
   Sparkles,
   Layers,
@@ -23,6 +21,7 @@ import DeleteConfirmationModal from '../../features/workspace/components/DeleteC
 import AlgorithmJourneyMap from '../../components/AlgorithmJourney/AlgorithmJourneyMap';
 import { JourneyNode } from '../../components/AlgorithmJourney/JourneyNodeCard';
 import PatternForgeNavigation from '../../components/PatternForgeNavigation';
+import GlobalProblemSearch from '../../components/GlobalProblemSearch';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
@@ -477,7 +476,7 @@ export default function PatternForgeHomePage() {
   }, [router]);
 
   const solvedCount = problems.filter((p) => p.solved).length;
-  const currentXp = 840 + solvedCount * 120;
+  const currentXp = solvedCount * 120;
 
   const userName = email.split('@')[0]
     ? email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1)
@@ -556,7 +555,7 @@ export default function PatternForgeHomePage() {
       {/* ================= MAIN CONTENT AREA ================= */}
       <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden pt-16 lg:pt-0">
         {/* Top Header Bar with Frosted Glassmorphism */}
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b-2 border-[#e8e1d3] bg-[#fffdf8]/90 px-4 py-4 backdrop-blur-xl sm:px-8">
+        <header className="relative z-40 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b-2 border-[#e8e1d3] bg-[#fffdf8]/90 px-4 py-4 backdrop-blur-xl sm:px-8">
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-black text-[#17263a] flex items-center gap-2 tracking-tight">
               Good morning, {userName}.
@@ -566,27 +565,7 @@ export default function PatternForgeHomePage() {
             </p>
           </div>
 
-          <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:gap-3">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => router.push('/dashboard/creator')}
-              className="min-w-0 flex-1 justify-center px-2 py-2 bg-white hover:bg-[#fffaf0] border-2 border-b-4 border-[#e3d8c8] text-slate-700 rounded-2xl text-[10px] sm:px-4 sm:text-xs font-extrabold uppercase tracking-wide transition-all active:translate-y-[2px] active:border-b-2 flex items-center gap-1.5 sm:flex-none"
-            >
-              <Plus className="w-4 h-4 text-amber-400" />
-              <span className="truncate">AI Problem Creator</span>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => router.push('/interview-arena')}
-              className="min-w-0 flex-1 justify-center px-2 py-2 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 border-2 border-b-4 border-amber-600/70 text-slate-950 rounded-2xl text-[10px] sm:px-4 sm:text-xs font-black uppercase tracking-wide transition-all active:translate-y-[2px] active:border-b-2 flex items-center gap-1.5 sm:flex-none"
-            >
-              <Flag className="w-4 h-4 fill-slate-950" />
-              <span className="truncate">Launch OA Arena</span>
-            </motion.button>
-          </div>
+          <GlobalProblemSearch />
         </header>
 
         {/* INTERACTIVE ALGORITHM JOURNEY MAP */}

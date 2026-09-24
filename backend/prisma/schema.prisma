@@ -75,6 +75,7 @@ model Problem {
   memoryLimit    Int                 @default(256) // in megabytes
   optimalTime    String              // e.g. "O(N)"
   optimalSpace   String              // e.g. "O(1)"
+  source         String              @default("seeded") // seeded | creator (interview) | journey
   createdAt      DateTime            @default(now())
   examples       ProblemExample[]
   visualDiagrams ProblemVisualDiagram[]

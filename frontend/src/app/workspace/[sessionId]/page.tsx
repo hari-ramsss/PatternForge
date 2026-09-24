@@ -3,7 +3,7 @@
 import React, { useEffect, useState, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEditorStore } from '../../../features/workspace/useEditorStore';
 import { useSessionStore } from '../../../features/workspace/useSessionStore';
 import { useAutosave } from '../../../features/workspace/hooks/useAutosave';
@@ -13,7 +13,7 @@ import VocalTranscriptDrawer from '../../../features/workspace/components/VocalT
 import AiVoiceInterviewer from '../../../features/workspace/components/AiVoiceInterviewer';
 import DeleteConfirmationModal from '../../../features/workspace/components/DeleteConfirmationModal';
 import { createDiagramDefinition, type DiagramDefinition } from '../../../features/workspace/diagram-utils';
-import { Play, Send, ChevronDown, CheckCircle, AlertTriangle, Cpu, Clock, RefreshCw, Sparkles, BookOpen, BrainCircuit, Activity, Unlock, Lock, Plus, Trash2, Code2, Award, Mic, Bot, Timer } from 'lucide-react';
+import { Play, Send, ChevronDown, CheckCircle, AlertTriangle, Cpu, Clock, RefreshCw, Sparkles, BookOpen, BrainCircuit, Activity, Unlock, Lock, Plus, Trash2, Code2, Award, Mic, Bot, Timer, Flame } from 'lucide-react';
 
 interface Example {
   id: string;
@@ -393,7 +393,47 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
       prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
     );
   };
-  const [animationStep, setAnimationStep] = useState<number>(0);
+
+  // Persistent test case seeding — only offered when a problem has zero stored test cases
+  const queryClient = useQueryClient();
+  const [seedCases, setSeedCases] = useState<Array<{ id: string; input: string; expected: string; isPublic: boolean }>>([]);
+  const [showCaseSeeder, setShowCaseSeeder] = useState(false);
+
+  const handleAddSeedCase = () => {
+    setSeedCases((prev) => [...prev, { id: `seed-${Date.now()}`, input: '', expected: '', isPublic: true }]);
+  };
+  const handleUpdateSeedCase = (id: string, field: 'input' | 'expected' | 'isPublic', value: string | boolean) => {
+    setSeedCases((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
+  };
+  const handleRemoveSeedCase = (id: string) => {
+    setSeedCases((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const seedCasesMutation = useMutation({
+    mutationFn: async () => {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiUrl}/problems/${problem?.id}/test-cases`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          testCases: seedCases.map(({ input, expected, isPublic }) => ({ input, expected, isPublic })),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to seed test cases');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setSeedCases([]);
+      setShowCaseSeeder(false);
+      queryClient.invalidateQueries({ queryKey: ['problem', problemId] });
+    },
+  });
 
   const [phaseStartTime, setPhaseStartTime] = useState<number>(Date.now());
   const prevPhaseRef = useRef<string>(currentPhase);
@@ -763,7 +803,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
       }
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       const submissionId = data.submissionId;
       setCompiling(true);
       setActiveTab('verdict');
@@ -789,32 +829,12 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
           setCompiling(false);
           eventSource.close();
 
-          // Adaptive Difficulty Skipping trigger check
-          if (payload.status === 'ACCEPTED') {
+          // Adaptive Difficulty Skipping trigger check.
+          // Only fires after a real SUBMIT — never during Run/Test with sample cases.
+          if (payload.status === 'ACCEPTED' && variables?.isSubmit) {
             const timeElapsed = (Date.now() - loadTime) / 1000;
             if (timeElapsed < 300) { // solved under 5 minutes
               setShowSkillJump(true);
-              setAnimationStep(1); // Success Banner & Confetti
-
-              setTimeout(() => {
-                setAnimationStep(2); // Card Flip & Shimmer Border
-              }, 450);
-
-              setTimeout(() => {
-                setAnimationStep(3); // Energy Particle Transfer
-              }, 1100);
-
-              setTimeout(() => {
-                setAnimationStep(4); // Mastery Progress Bar Fill
-              }, 1900);
-
-              setTimeout(() => {
-                setAnimationStep(5); // Category Node Pulse & Counter Increment
-              }, 2500);
-
-              setTimeout(() => {
-                setAnimationStep(6); // Light Up Connector & Next Node Grow
-              }, 3100);
             }
           }
         }
@@ -1791,9 +1811,107 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                       ];
 
                       const currentCase = combinedCases[activeTestCaseIdx] || combinedCases[0];
+                      const hasPersistedCases = (problem?.testCases?.length ?? 0) > 0;
 
                       return (
                         <div className="space-y-4">
+                          {/* Persistent Test Case Seeder — only when the problem has zero stored cases */}
+                          {!hasPersistedCases && (
+                            <div className="bg-stone-900/60 border border-amber-500/30 rounded-xl p-3 space-y-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    No test cases seeded for this problem
+                                  </p>
+                                  <p className="text-[10px] text-stone-500 leading-snug mt-0.5">
+                                    Seed them once to enable submission verdicts. One argument per line, JSON format (e.g. [&quot;h&quot;,&quot;e&quot;,&quot;l&quot;,&quot;l&quot;,&quot;o&quot;]).
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    setShowCaseSeeder((v) => !v);
+                                    if (!showCaseSeeder && seedCases.length === 0) handleAddSeedCase();
+                                  }}
+                                  className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition flex items-center gap-1 ${showCaseSeeder
+                                    ? 'bg-stone-800 text-stone-300 border border-stone-700 hover:text-stone-100'
+                                    : 'bg-amber-500/15 text-amber-400 border border-amber-500/40 hover:bg-amber-500/25'
+                                    }`}
+                                >
+                                  {showCaseSeeder ? 'Close' : 'Seed Test Cases'}
+                                </button>
+                              </div>
+
+                              {showCaseSeeder && (
+                                <div className="space-y-3 pt-3 border-t border-stone-800">
+                                  {seedCases.map((sc, i) => (
+                                    <div key={sc.id} className="bg-stone-900/70 border border-stone-800 rounded-xl p-3 space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Case {i + 1}</span>
+                                        <div className="flex items-center gap-3">
+                                          <label className="flex items-center gap-1.5 text-[10px] text-stone-400 cursor-pointer select-none">
+                                            <input
+                                              type="checkbox"
+                                              checked={sc.isPublic}
+                                              onChange={(e) => handleUpdateSeedCase(sc.id, 'isPublic', e.target.checked)}
+                                              className="accent-amber-500"
+                                            />
+                                            Sample (visible)
+                                          </label>
+                                          {seedCases.length > 1 && (
+                                            <button
+                                              onClick={() => handleRemoveSeedCase(sc.id)}
+                                              className="text-stone-500 hover:text-red-400 p-1 transition"
+                                              title="Remove this case"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <textarea
+                                        value={sc.input}
+                                        onChange={(e) => handleUpdateSeedCase(sc.id, 'input', e.target.value)}
+                                        placeholder={'Input — one argument per line\n["h","e","l","l","o"]'}
+                                        className="w-full min-h-[54px] bg-stone-900 border border-stone-800 rounded-lg p-2.5 outline-none text-stone-200 font-mono text-xs focus:border-amber-500/50 transition resize-none"
+                                      />
+                                      <textarea
+                                        value={sc.expected}
+                                        onChange={(e) => handleUpdateSeedCase(sc.id, 'expected', e.target.value)}
+                                        placeholder={'Expected output\n["o","l","l","e","h"]'}
+                                        className="w-full min-h-[42px] bg-stone-900 border border-stone-800 rounded-lg p-2.5 outline-none text-stone-300 font-mono text-xs focus:border-stone-700 transition resize-none"
+                                      />
+                                    </div>
+                                  ))}
+
+                                  <div className="flex items-center justify-between gap-2">
+                                    <button
+                                      onClick={handleAddSeedCase}
+                                      className="px-2.5 py-1.5 text-xs rounded-lg font-medium bg-stone-900 border border-stone-800 text-stone-400 hover:text-amber-400 hover:border-amber-500/30 transition flex items-center gap-1"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                      <span>Add Case</span>
+                                    </button>
+                                    <button
+                                      onClick={() => seedCasesMutation.mutate()}
+                                      disabled={seedCasesMutation.isPending || seedCases.length === 0}
+                                      className="px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:bg-stone-800 disabled:text-stone-500 transition flex items-center gap-1.5"
+                                    >
+                                      {seedCasesMutation.isPending ? 'Seeding...' : 'Save Test Cases'}
+                                    </button>
+                                  </div>
+
+                                  {seedCasesMutation.isError && (
+                                    <p className="text-[10px] text-red-400">{(seedCasesMutation.error as Error).message}</p>
+                                  )}
+                                  {seedCasesMutation.isSuccess && (
+                                    <p className="text-[10px] text-emerald-400">Test cases seeded successfully.</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           {/* Test Case Tabs Bar */}
                           <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-stone-850">
                             {combinedCases.map((tc, idx) => (
@@ -2032,223 +2150,187 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
         </section>
       </main>
 
-      {/* Adaptive Progression Skipping Dialog Overlay */}
+      {/* Skill Jump Celebration — shown only after a successful submission */}
       {showSkillJump && (
-        <div className="fixed inset-0 bg-stone-950/85 backdrop-blur-xs flex items-center justify-center z-50 animate-fadeIn font-sans">
-          {/* Fenced keyframe styles inside React to avoid layout break */}
+        <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-xs flex items-center justify-center z-50 animate-fadeIn font-sans">
           <style dangerouslySetInnerHTML={{
             __html: `
-            @keyframes flyOut1 { 0% { transform: translate(0, 0) scale(0.5); opacity: 1; } 100% { transform: translate(-70px, -60px) scale(1.2); opacity: 0; } }
-            @keyframes flyOut2 { 0% { transform: translate(0, 0) scale(0.5); opacity: 1; } 100% { transform: translate(70px, -50px) scale(1.2); opacity: 0; } }
-            @keyframes flyOut3 { 0% { transform: translate(0, 0) scale(0.5); opacity: 1; } 100% { transform: translate(-50px, 70px) scale(1.2); opacity: 0; } }
-            @keyframes flyOut4 { 0% { transform: translate(0, 0) scale(0.5); opacity: 1; } 100% { transform: translate(60px, 60px) scale(1.2); opacity: 0; } }
-            @keyframes flyParticle {
-              0% { transform: translateY(60px) scale(0.5); opacity: 0; filter: blur(2px); }
-              30% { transform: translateY(40px) scale(1.3); opacity: 1; filter: blur(0px); }
-              70% { transform: translateY(-40px) scale(1.0); opacity: 1; }
-              100% { transform: translateY(-70px) scale(0.3); opacity: 0; }
+            @keyframes robotJump {
+              0%   { transform: translateY(0) scale(1, 1); }
+              12%  { transform: translateY(4px) scale(1.08, 0.88); }
+              38%  { transform: translateY(-48px) scale(0.94, 1.08); }
+              62%  { transform: translateY(-48px) scale(0.96, 1.05); }
+              86%  { transform: translateY(2px) scale(1.12, 0.84); }
+              100% { transform: translateY(0) scale(1, 1); }
             }
-            @keyframes pulseNode {
-              0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(217, 119, 6, 0)); }
-              50% { transform: scale(1.1); filter: drop-shadow(0 0 16px rgba(217, 119, 6, 0.75)); }
-              100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(217, 119, 6, 0)); }
+            @keyframes robotShadow {
+              0%, 100% { transform: translateX(-50%) scaleX(1); opacity: 0.16; }
+              38%, 62% { transform: translateX(-50%) scaleX(0.5); opacity: 0.06; }
+              86%      { transform: translateX(-50%) scaleX(1.15); opacity: 0.2; }
             }
-            @keyframes bounceUnlock {
-              0% { transform: translateY(15px) scale(0.85); opacity: 0; }
-              50% { transform: translateY(-8px) scale(1.05); opacity: 1; }
+            @keyframes eyeBlink {
+              0%, 91%, 100% { transform: scaleY(1); }
+              95% { transform: scaleY(0.08); }
+            }
+            @keyframes armWaveL {
+              0%, 100% { transform: rotate(150deg); }
+              50% { transform: rotate(185deg); }
+            }
+            @keyframes armWaveR {
+              0%, 100% { transform: rotate(-185deg); }
+              50% { transform: rotate(-150deg); }
+            }
+            @keyframes antennaGlow {
+              0%, 100% { box-shadow: 0 0 4px 1px rgba(249, 115, 22, 0.5); }
+              50% { box-shadow: 0 0 14px 5px rgba(249, 115, 22, 0.85); }
+            }
+            @keyframes confettiFall {
+              0% { transform: translateY(-30px) rotate(0deg); opacity: 0; }
+              8% { opacity: 1; }
+              92% { opacity: 1; }
+              100% { transform: translateY(620px) rotate(660deg); opacity: 0; }
+            }
+            @keyframes popIn {
+              0% { transform: translateY(18px) scale(0.6); opacity: 0; }
+              60% { transform: translateY(-6px) scale(1.06); opacity: 1; }
               100% { transform: translateY(0) scale(1); opacity: 1; }
             }
-            .animate-sparkle1 { animation: flyOut1 0.7s ease-out infinite; }
-            .animate-sparkle2 { animation: flyOut2 0.7s ease-out infinite; }
-            .animate-sparkle3 { animation: flyOut3 0.7s ease-out infinite; }
-            .animate-sparkle4 { animation: flyOut4 0.7s ease-out infinite; }
-            .animate-energy { animation: flyParticle 0.9s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
-            .animate-pulse-node { animation: pulseNode 0.5s ease-in-out forwards; }
-            .animate-bounce-unlock { animation: bounceUnlock 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-            .perspective-1000 { perspective: 1000px; }
-            .preserve-3d { transform-style: preserve-3d; }
-            .backface-hidden { backface-visibility: hidden; }
-            .rotate-y-180 { transform: rotateY(180deg); }
+            @keyframes twinkle {
+              0%, 100% { transform: scale(1) rotate(0deg); }
+              50% { transform: scale(1.35) rotate(20deg); }
+            }
+            @keyframes flameFlicker {
+              0%, 100% { transform: scale(1) rotate(-2deg); }
+              50% { transform: scale(1.12) rotate(3deg); }
+            }
           `}} />
 
-          <div className="bg-white border border-[#EFECE6] p-8 rounded-3xl max-w-lg w-full mx-4 shadow-2xl relative overflow-hidden flex flex-col items-center">
+          <div className="relative bg-[#fffdf8] border-2 border-b-[6px] border-[#e8e1d3] rounded-[28px] max-w-md w-full mx-4 px-6 pt-8 pb-6 flex flex-col items-center overflow-hidden shadow-2xl">
 
-            {/* Background absolute visuals */}
-            <div className="absolute right-0 top-0 w-36 h-36 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-            {/* HEADER STEP (Success banner) */}
-            <div className="text-center space-y-2 mb-6">
-              <span className="text-[9px] bg-amber-500/20 text-amber-800 font-bold uppercase tracking-wider px-3 py-1 rounded-md border border-amber-500/30">
-                🚀 Skill Jump Calibrator
-              </span>
-              <h3 className="font-serif text-2xl font-bold text-stone-900 pt-1">
-                {animationStep === 1 && "Verifying Solution..."}
-                {animationStep === 2 && "Analyzing Complexity..."}
-                {animationStep === 3 && "Transferring Mastery..."}
-                {animationStep === 4 && "Updating Curriculum..."}
-                {animationStep === 5 && "Pattern Synced!"}
-                {animationStep >= 6 && "Next Pattern Unlocked!"}
-              </h3>
+            {/* Falling confetti layer */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {[
+                { left: '6%', delay: '0s', dur: '2.8s', color: '#f59e0b', w: 7, h: 11 },
+                { left: '14%', delay: '1.1s', dur: '3.2s', color: '#34d399', w: 6, h: 9 },
+                { left: '22%', delay: '0.5s', dur: '2.6s', color: '#38bdf8', w: 7, h: 12 },
+                { left: '31%', delay: '1.6s', dur: '3.4s', color: '#fb7185', w: 6, h: 10 },
+                { left: '40%', delay: '0.2s', dur: '2.9s', color: '#fbbf24', w: 7, h: 11 },
+                { left: '49%', delay: '1.3s', dur: '3.1s', color: '#a78bfa', w: 6, h: 9 },
+                { left: '58%', delay: '0.7s', dur: '2.7s', color: '#fb923c', w: 7, h: 12 },
+                { left: '67%', delay: '1.8s', dur: '3.3s', color: '#34d399', w: 6, h: 10 },
+                { left: '76%', delay: '0.4s', dur: '2.8s', color: '#38bdf8', w: 7, h: 11 },
+                { left: '84%', delay: '1.4s', dur: '3.0s', color: '#fbbf24', w: 6, h: 9 },
+                { left: '92%', delay: '0.9s', dur: '2.9s', color: '#fb7185', w: 7, h: 12 },
+                { left: '10%', delay: '2.1s', dur: '3.5s', color: '#a78bfa', w: 6, h: 10 },
+                { left: '54%', delay: '2.3s', dur: '3.4s', color: '#f59e0b', w: 6, h: 9 },
+                { left: '88%', delay: '2.0s', dur: '3.3s', color: '#34d399', w: 7, h: 11 },
+              ].map((c, i) => (
+                <div
+                  key={i}
+                  className="absolute rounded-[2px]"
+                  style={{
+                    left: c.left,
+                    top: -20,
+                    width: c.w,
+                    height: c.h,
+                    backgroundColor: c.color,
+                    animation: `confettiFall ${c.dur} linear ${c.delay} infinite`,
+                  }}
+                />
+              ))}
             </div>
 
-            {/* MAIN ANIMATION INTERACTION VIEWPORT (Min height 240px) */}
-            <div className="w-full h-64 flex flex-col items-center justify-center relative mb-6 border border-stone-100 bg-[#FAF8F5]/50 rounded-2xl overflow-hidden shadow-inner">
-
-              {/* Step 1: Confetti sparkles & Success Banner */}
-              {animationStep === 1 && (
-                <div className="relative flex flex-col items-center space-y-2 text-center animate-fadeIn">
-                  {/* Confetti Particles */}
-                  <div className="absolute w-2 h-2 rounded-full bg-amber-500 animate-sparkle1" />
-                  <div className="absolute w-2 h-2 rounded-full bg-emerald-500 animate-sparkle2" />
-                  <div className="absolute w-2 h-2 rounded-full bg-blue-500 animate-sparkle3" />
-                  <div className="absolute w-2 h-2 rounded-full bg-purple-500 animate-sparkle4" />
-
-                  <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-sm">
-                    <CheckCircle className="w-8 h-8 text-emerald-600" />
-                  </div>
-                  <strong className="text-sm text-stone-850 font-bold">✓ Solution Accepted</strong>
-                  <span className="text-[10px] text-stone-450 font-mono">Optimal time-space O(N) complexity</span>
+            {/* Jumping celebration robot */}
+            <div className="relative flex flex-col items-center justify-end h-44 mb-3">
+              {/* ground shadow */}
+              <div
+                className="absolute bottom-0 left-1/2 w-20 h-3 rounded-full bg-stone-900"
+                style={{ animation: 'robotShadow 1.5s ease-in-out infinite' }}
+              />
+              {/* robot (squash & stretch jump) */}
+              <div
+                className="flex flex-col items-center"
+                style={{ animation: 'robotJump 1.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite' }}
+              >
+                {/* antenna */}
+                <div className="flex flex-col items-center">
+                  <div
+                    className="w-3 h-3 rounded-full bg-orange-500 border-2 border-orange-600"
+                    style={{ animation: 'antennaGlow 1.5s ease-in-out infinite' }}
+                  />
+                  <div className="w-1 h-2 bg-stone-300 rounded-full" />
                 </div>
-              )}
-
-              {/* Step 2: Problem Card Flip & gold glow */}
-              {animationStep === 2 && (
-                <div className="perspective-1000 w-40 h-24">
-                  <div className="w-full h-full preserve-3d duration-500 ease-in-out rotate-y-180 flex items-center justify-center relative">
-                    {/* Front side */}
-                    <div className="absolute inset-0 bg-white border border-stone-200 rounded-xl p-3 flex flex-col justify-between backface-hidden shadow-sm">
-                      <span className="text-[8px] text-stone-400 font-bold uppercase">Core Challenge</span>
-                      <strong className="text-xs text-stone-850 font-bold">{problem.title}</strong>
+                {/* head */}
+                <div className="w-20 h-16 bg-white border-2 border-b-4 border-stone-300 rounded-2xl flex items-center justify-center shadow-sm">
+                  <div className="w-14 h-10 bg-[#17263a] rounded-xl flex flex-col items-center justify-center gap-1">
+                    <div className="flex gap-2.5">
+                      <span className="w-2 h-2.5 rounded-full bg-emerald-400" style={{ animation: 'eyeBlink 3.2s ease-in-out infinite' }} />
+                      <span className="w-2 h-2.5 rounded-full bg-emerald-400" style={{ animation: 'eyeBlink 3.2s ease-in-out infinite 0.1s' }} />
                     </div>
-                    {/* Back side */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-3 flex flex-col justify-between text-white shadow-md border border-amber-400 rotate-y-180 backface-hidden">
-                      <div className="flex justify-between items-center w-full">
-                        <span className="text-[8px] font-bold uppercase tracking-wider text-amber-100">Mastered</span>
-                        <Sparkles className="w-3.5 h-3.5 fill-amber-300 text-amber-200 animate-pulse" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <strong className="text-xs font-bold block">{problem.title}</strong>
-                        <span className="text-[9px] text-amber-150 font-mono">+120 XP</span>
-                      </div>
-                    </div>
+                    <div className="w-5 h-2 border-b-2 border-emerald-400 rounded-b-full" />
                   </div>
                 </div>
-              )}
-
-              {/* Step 3: Energy Particle Transfer */}
-              {animationStep === 3 && (
-                <div className="flex flex-col items-center justify-center relative w-full h-full">
-                  {/* Category Node */}
-                  <div className="w-12 h-12 rounded-full bg-white border-2 border-stone-250 flex items-center justify-center text-xs font-bold text-stone-755 shadow-sm relative">
-                    <span>Arrays</span>
-                  </div>
-
-                  {/* Glowing flying particle */}
-                  <div className="w-3 h-3 rounded-full bg-amber-400 border border-amber-300 shadow-md absolute animate-energy" />
-
-                  {/* Problem Card (Bottom) */}
-                  <div className="w-32 h-12 bg-amber-600 rounded-lg p-2 flex flex-col justify-center text-white mt-16 border border-amber-500 shadow-sm opacity-60">
-                    <span className="text-[7px] font-bold uppercase tracking-wider text-amber-100">Source</span>
-                    <strong className="text-[10px] font-bold truncate">{problem.title}</strong>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 4: Fill Mastery Bar */}
-              {animationStep === 4 && (
-                <div className="w-4/5 space-y-4 animate-fadeIn">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-stone-750">Arrays & Hashing Mastery</span>
-                    <span className="text-stone-850 font-mono font-bold">Updating...</span>
-                  </div>
-                  <div className="w-full bg-stone-200 h-3 rounded-full overflow-hidden relative shadow-inner">
-                    <div
-                      className="bg-amber-500 h-full rounded-full transition-all duration-700 ease-out"
-                      style={{ width: '38%' }}
+                {/* neck */}
+                <div className="w-4 h-1.5 bg-stone-300 rounded-full" />
+                {/* body */}
+                <div className="relative">
+                  <div className="w-16 h-12 bg-gradient-to-b from-amber-400 to-orange-500 border-2 border-b-4 border-orange-600/80 rounded-2xl flex items-center justify-center">
+                    {/* PatternForge brand flame on the chest */}
+                    <Flame
+                      className="w-6 h-6 text-white fill-white/90 drop-shadow-sm"
+                      style={{ animation: 'flameFlicker 1.5s ease-in-out infinite' }}
                     />
                   </div>
-                  <p className="text-[10px] text-stone-450 italic text-center font-mono animate-pulse">
-                    Recalculating learning retention decay factors...
-                  </p>
-                </div>
-              )}
-
-              {/* Step 5: Node Pulse & Counter Increment */}
-              {animationStep === 5 && (
-                <div className="flex flex-col items-center space-y-3 animate-pulse-node">
-                  <div className="w-16 h-16 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-lg border border-amber-400">
-                    <CheckCircle className="w-8 h-8 text-white" />
+                  {/* waving arms (raised, hands-up celebration) */}
+                  <div
+                    className="absolute -left-4 top-0 w-2.5 h-8 bg-white border-2 border-stone-300 rounded-full origin-top"
+                    style={{ animation: 'armWaveL 0.75s ease-in-out infinite' }}
+                  />
+                  <div
+                    className="absolute -right-4 top-0 w-2.5 h-8 bg-white border-2 border-stone-300 rounded-full origin-top"
+                    style={{ animation: 'armWaveR 0.75s ease-in-out infinite' }}
+                  />
+                  {/* legs */}
+                  <div className="flex justify-center gap-3">
+                    <div className="w-3.5 h-4 bg-[#17263a] rounded-b-xl" />
+                    <div className="w-3.5 h-4 bg-[#17263a] rounded-b-xl" />
                   </div>
-                  <div className="text-center space-y-0.5">
-                    <strong className="block text-sm text-stone-850">Arrays & Hashing Level Up!</strong>
-                    <span className="text-xs text-stone-450 font-mono">Core completion: 2 / 9 problems</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 6: Light Up Connector & Next Node Grow (Bounce) */}
-              {animationStep >= 6 && (
-                <div className="flex flex-col items-center justify-center space-y-4 animate-bounce-unlock">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-300 text-amber-600 flex items-center justify-center shadow-md animate-bounce">
-                    <Sparkles className="w-6 h-6 fill-amber-500 text-amber-600" />
-                  </div>
-                  <div className="text-center space-y-1">
-                    <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-250 font-bold uppercase px-2 py-0.5 rounded">
-                      Unlocking Advanced Drill
-                    </span>
-                    <strong className="block text-sm text-stone-900">✨ Prefix Sum unlocked!</strong>
-                    <p className="text-[10px] text-stone-500 leading-normal max-w-xs px-4">
-                      Moving you past beginner elements to the next optimized observation bounds.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-            </div>
-
-            {/* MULTI-SKILL UPDATE DETAIL STATS (Spotify style abilities) */}
-            <div className="w-full bg-[#FAF8F5] border border-stone-200 rounded-2xl p-4 space-y-2 mb-6">
-              <span className="text-[9px] text-stone-400 uppercase tracking-wider font-bold block mb-1">Algorithmic Abilities Updates</span>
-
-              {/* Dynamic list showing how skills are updated */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="flex justify-between items-center bg-white border border-stone-150 p-2 rounded-lg">
-                  <span className="text-stone-550">Arrays & Hashing</span>
-                  <span className="font-mono text-emerald-600 font-bold">+8%</span>
-                </div>
-                <div className="flex justify-between items-center bg-white border border-stone-150 p-2 rounded-lg">
-                  <span className="text-stone-550">Observation</span>
-                  <span className="font-mono text-emerald-600 font-bold">+6</span>
-                </div>
-                <div className="flex justify-between items-center bg-white border border-stone-150 p-2 rounded-lg">
-                  <span className="text-stone-550">Hash Lookup</span>
-                  <span className="font-mono text-emerald-600 font-bold">+12</span>
-                </div>
-                <div className="flex justify-between items-center bg-white border border-stone-150 p-2 rounded-lg">
-                  <span className="text-stone-550">Confidence</span>
-                  <span className="font-mono text-emerald-600 font-bold">+5</span>
                 </div>
               </div>
             </div>
 
-            {/* CONTROLS AREA */}
-            <div className="w-full pt-2 flex flex-col gap-2">
-              <button
-                onClick={() => {
-                  setShowSkillJump(false);
-                  router.push('/workspace/top-k-frequent-elements');
-                }}
-                disabled={animationStep < 5}
-                className="w-full py-3 bg-amber-600 hover:bg-amber-700 disabled:bg-stone-300 disabled:text-stone-500 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center justify-center gap-2"
+            {/* Congrats headline */}
+            <div
+              className="relative text-center space-y-2"
+              style={{ animation: 'popIn 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) both 0.15s' }}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-500" style={{ animation: 'twinkle 1.6s ease-in-out infinite' }} />
+                <h3 className="text-3xl font-black text-[#17263a] tracking-tight">Congratulations!</h3>
+                <Sparkles className="w-5 h-5 text-amber-500" style={{ animation: 'twinkle 1.6s ease-in-out infinite 0.4s' }} />
+              </div>
+              <p className="text-sm text-slate-600 font-semibold">
+                You completed <span className="text-[#e67b1f] font-extrabold">{problem.title}</span>! 🎉
+              </p>
+              <p className="text-xs text-slate-500 font-medium">Brilliant work — onto the next challenge!</p>
+            </div>
+
+            {/* XP REWARD + CONTROLS */}
+            <div className="relative w-full mt-6 flex flex-col items-center gap-3">
+              <span
+                className="inline-flex items-center gap-1.5 bg-amber-100 border-2 border-amber-300 text-amber-700 text-xs font-black uppercase tracking-wide px-3.5 py-1.5 rounded-full"
+                style={{ animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both 0.5s' }}
               >
-                <span>Move to Top K Frequent Elements</span>
-                <Send className="w-3.5 h-3.5" />
-              </button>
+                <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
+                +120 XP Earned
+              </span>
+
               <button
                 onClick={() => setShowSkillJump(false)}
-                className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-750 rounded-xl font-semibold text-xs transition"
+                className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 border-2 border-b-4 border-amber-600/70 text-slate-950 rounded-2xl text-xs font-black uppercase tracking-wide transition-all active:translate-y-[2px] active:border-b-2 flex items-center justify-center gap-2"
               >
-                Stay in Current Workspace
+                <span>Claim +120 XP</span>
+                <Flame className="w-3.5 h-3.5 fill-slate-950/80" />
               </button>
             </div>
 

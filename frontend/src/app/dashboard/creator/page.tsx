@@ -1,12 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Sparkles, Send, BrainCircuit, Play,
-  RefreshCw, Cpu, Code, HelpCircle, FileText, Trash2
+  RefreshCw, Cpu, Code, HelpCircle, FileText, Trash2,
+  Library, Search, X, Flame
 } from 'lucide-react';
 import PatternForgeNavigation from '../../../components/PatternForgeNavigation';
+
+const DIFFICULTY_STYLES: Record<string, string> = {
+  EASY: 'bg-emerald-100 border-emerald-300 text-emerald-700',
+  MEDIUM: 'bg-amber-100 border-amber-300 text-amber-700',
+  HARD: 'bg-rose-100 border-rose-300 text-rose-700',
+};
+
+interface LibraryProblem {
+  id: string;
+  title: string;
+  difficulty: string;
+  topic: string;
+  subtopic?: string | null;
+  solved: boolean;
+}
 
 export default function ProblemCreatorPage() {
   const router = useRouter();
@@ -17,7 +33,52 @@ export default function ProblemCreatorPage() {
   const [createdResult, setCreatedResult] = useState<any>(null);
   const [selectedLangTab, setSelectedLangTab] = useState('python');
 
+  // Interview problems library
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [libraryProblems, setLibraryProblems] = useState<LibraryProblem[]>([]);
+  const [librarySearch, setLibrarySearch] = useState('');
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [libraryError, setLibraryError] = useState('');
+
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+  useEffect(() => {
+    if (!showLibrary) return;
+    const timer = setTimeout(async () => {
+      setLibraryLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(
+          `${apiUrl}/problems?source=creator&search=${encodeURIComponent(librarySearch)}`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+        );
+        if (!res.ok) throw new Error('Failed to load interview problems');
+        const data = await res.json();
+        setLibraryProblems(Array.isArray(data) ? data : []);
+        setLibraryError('');
+      } catch (err: any) {
+        setLibraryError(err.message || 'Failed to load interview problems');
+      } finally {
+        setLibraryLoading(false);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [showLibrary, librarySearch, apiUrl]);
+
+  const handleDeleteLibraryProblem = async (problemId: string, title: string) => {
+    const confirmed = window.confirm(`⚠️ Delete "${title}" permanently?\n\nThis removes the problem, its test cases and submissions.`);
+    if (!confirmed) return;
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${apiUrl}/problems/${problemId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setLibraryProblems((prev) => prev.filter((p) => p.id !== problemId));
+    } catch (e) {
+      console.error('Delete failed', e);
+    }
+  };
 
   const SUGGESTED_PROMPTS = [
     {
@@ -98,7 +159,7 @@ export default function ProblemCreatorPage() {
       <div className="flex h-full">
         <PatternForgeNavigation statusLabel="Creation mode" statusValue="AI" />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <header className="flex shrink-0 items-center justify-between border-b-2 border-[#e8e1d3] bg-[#fffdf8]/90 px-5 py-4 backdrop-blur-xl sm:px-8"><div><h1 className="flex items-center gap-2 text-lg font-black tracking-tight text-[#17263a]"><Sparkles className="h-5 w-5 text-[#e67b1f]" />AI Problem Creator</h1><p className="text-xs font-medium text-slate-400">Turn an interview idea into a complete practice problem</p></div><button onClick={() => router.push('/dashboard')} className="hidden items-center gap-1.5 rounded-2xl border-2 border-b-4 border-[#e3d8c8] bg-white px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-slate-700 transition-all hover:bg-[#fffaf0] active:translate-y-[2px] active:border-b-2 sm:flex"><ArrowLeft className="h-4 w-4" />Dashboard</button></header>
+          <header className="flex shrink-0 items-center justify-between border-b-2 border-[#e8e1d3] bg-[#fffdf8]/90 px-5 py-4 backdrop-blur-xl sm:px-8"><div><h1 className="flex items-center gap-2 text-lg font-black tracking-tight text-[#17263a]"><Sparkles className="h-5 w-5 text-[#e67b1f]" />AI Problem Creator</h1><p className="text-xs font-medium text-slate-400">Turn an interview idea into a complete practice problem</p></div><div className="flex items-center gap-2"><button onClick={() => { setShowLibrary(true); }} className="flex items-center gap-1.5 rounded-2xl border-2 border-b-4 border-amber-600/70 bg-gradient-to-r from-amber-500 to-amber-400 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-950 transition-all hover:from-amber-400 hover:to-amber-300 active:translate-y-[2px] active:border-b-2"><Library className="h-4 w-4" />Interview Problems</button><button onClick={() => router.push('/dashboard')} className="hidden items-center gap-1.5 rounded-2xl border-2 border-b-4 border-[#e3d8c8] bg-white px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-slate-700 transition-all hover:bg-[#fffaf0] active:translate-y-[2px] active:border-b-2 sm:flex"><ArrowLeft className="h-4 w-4" />Dashboard</button></div></header>
 
           <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-16 pt-5 sm:px-8 sm:pt-7">
             <div className="mx-auto max-w-5xl space-y-8 animate-fadeIn">
@@ -370,6 +431,106 @@ export default function ProblemCreatorPage() {
           </main>
         </div>
       </div>
+
+      {/* Interview Problems Library Modal */}
+      {showLibrary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#17263a]/60 px-4 backdrop-blur-sm" onClick={() => setShowLibrary(false)}>
+          <div
+            className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border-2 border-b-[6px] border-[#e8e1d3] bg-[#fffdf8] shadow-2xl animate-scaleUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="flex shrink-0 items-center justify-between border-b-2 border-[#e8e1d3] px-5 py-4">
+              <div>
+                <h3 className="flex items-center gap-2 text-base font-black tracking-tight text-[#17263a]">
+                  <Library className="h-4 w-4 text-[#e67b1f]" />
+                  Interview Problems
+                </h3>
+                <p className="text-xs font-medium text-slate-400">Every problem you created with the AI synthesizer</p>
+              </div>
+              <button
+                onClick={() => setShowLibrary(false)}
+                className="rounded-xl border-2 border-b-4 border-[#e3d8c8] bg-white p-2 text-slate-500 transition-all hover:bg-[#fffaf0] active:translate-y-[2px] active:border-b-2"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Search bar */}
+            <div className="shrink-0 px-5 pt-4">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={librarySearch}
+                  onChange={(e) => setLibrarySearch(e.target.value)}
+                  placeholder="Search by title, topic, difficulty..."
+                  className="w-full rounded-xl border border-[#e4dbcf] bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-5">
+              {libraryLoading ? (
+                <div className="flex flex-col items-center gap-3 py-10 text-center">
+                  <RefreshCw className="h-6 w-6 animate-spin text-amber-500" />
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Loading your problems...</p>
+                </div>
+              ) : libraryError ? (
+                <div className="rounded-2xl border-2 border-b-4 border-rose-200 bg-rose-50 p-4 text-center text-sm font-semibold text-rose-700">{libraryError}</div>
+              ) : libraryProblems.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-10 text-center">
+                  <Flame className="h-8 w-8 text-amber-300" />
+                  <p className="text-sm font-bold text-[#17263a]">
+                    {librarySearch ? 'No problems match your search' : 'No interview problems yet'}
+                  </p>
+                  <p className="max-w-xs text-xs text-slate-400">
+                    {librarySearch ? 'Try a different keyword.' : 'Synthesize your first one above — it will appear here automatically.'}
+                  </p>
+                </div>
+              ) : (
+                libraryProblems.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between gap-3 rounded-2xl border-2 border-b-4 border-[#e8e1d3] bg-white p-3.5 transition hover:border-amber-300">
+                    <button onClick={() => router.push(`/workspace/${p.id}`)} className="min-w-0 flex-1 text-left">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="truncate text-sm font-black text-[#17263a]">{p.title}</h4>
+                        <span className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${DIFFICULTY_STYLES[p.difficulty] || 'border-slate-200 bg-slate-100 text-slate-600'}`}>
+                          {p.difficulty}
+                        </span>
+                        {p.solved && (
+                          <span className="rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-600">
+                            Solved
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 truncate text-[11px] font-medium capitalize text-slate-400">
+                        {p.topic}{p.subtopic ? ` · ${p.subtopic}` : ''}
+                      </p>
+                    </button>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <button
+                        onClick={() => router.push(`/workspace/${p.id}`)}
+                        className="flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-amber-600/70 bg-gradient-to-r from-amber-500 to-amber-400 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-slate-950 transition-all hover:from-amber-400 hover:to-amber-300 active:translate-y-[2px] active:border-b-2"
+                      >
+                        <Play className="h-3 w-3 fill-slate-950" />
+                        Practice
+                      </button>
+                      <button
+                        onClick={() => handleDeleteLibraryProblem(p.id, p.title)}
+                        className="rounded-xl border-2 border-b-4 border-rose-200 bg-rose-50 p-1.5 text-rose-500 transition-all hover:bg-rose-100 active:translate-y-[2px] active:border-b-2"
+                        title="Delete problem"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

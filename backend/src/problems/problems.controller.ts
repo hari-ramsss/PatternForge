@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Delete, Body, UseGuards, Request, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, Post, Delete, Body, UseGuards, Request, Query, NotFoundException } from '@nestjs/common';
 import { ProblemsService } from './problems.service';
 import { LeetcodeSyncService } from './leetcode-sync.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -12,8 +12,14 @@ export class ProblemsController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  async findAll(@Request() req) {
-    return this.problemsService.findAll(req.user.id);
+  async findAll(
+    @Request() req,
+    @Query('search') search?: string,
+    @Query('source') source?: string,
+    @Query('difficulty') difficulty?: string,
+    @Query('topic') topic?: string,
+  ) {
+    return this.problemsService.findAll(req.user.id, { search, source, difficulty, topic });
   }
 
   @Get('curriculum/subtopics')
@@ -51,6 +57,15 @@ export class ProblemsController {
         throw error;
       }
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/test-cases')
+  async seedTestCases(
+    @Param('id') id: string,
+    @Body('testCases') testCases: Array<{ input: string; expected: string; isPublic?: boolean }>,
+  ) {
+    return this.problemsService.seedTestCases(id, testCases);
   }
 
   @Get(':id/diagrams')

@@ -1,4 +1,4 @@
-import { BadGatewayException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiOrchestratorService } from '../assessment/ai-orchestrator.service';
@@ -31,8 +31,33 @@ export class ProblemsService {
     });
   }
 
-  async findAll(userId?: string) {
+  async findAll(userId?: string, options?: { search?: string; source?: string; difficulty?: string; topic?: string }) {
+    const where: Prisma.ProblemWhereInput = {};
+    if (options?.source) {
+      where.source = options.source;
+    }
+    if (options?.difficulty) {
+      where.difficulty = options.difficulty.toUpperCase();
+    }
+    if (options?.topic) {
+      where.topic = { equals: options.topic, mode: 'insensitive' };
+    }
+    if (options?.search) {
+      const search = options.search.trim();
+      if (search) {
+        // Wide keyword search across the human-facing fields
+        where.OR = [
+          { title: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+          { topic: { contains: search, mode: 'insensitive' } },
+          { subtopic: { contains: search, mode: 'insensitive' } },
+          { difficulty: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+    }
+
     const problems = await this.prisma.problem.findMany({
+      where,
       include: {
         submissions: {
           where: {
@@ -44,6 +69,7 @@ export class ProblemsService {
           },
         },
       },
+      orderBy: { createdAt: 'desc' },
     });
 
     return problems.map((p) => ({
@@ -54,8 +80,42 @@ export class ProblemsService {
       optimalSpace: p.optimalSpace,
       topic: p.topic,
       subtopic: p.subtopic,
+      source: p.source,
+      description: p.description,
       solved: p.submissions.length > 0,
     }));
+  }
+
+  async seedTestCases(id: string, testCases: Array<{ input: string; expected: string; isPublic?: boolean }>) {
+    const problem = await this.resolveProblem(id);
+    if (!Array.isArray(testCases) || testCases.length === 0) {
+      throw new BadRequestException('At least one test case is required');
+    }
+    for (const tc of testCases) {
+      if (!tc || typeof tc.input !== 'string' || typeof tc.expected !== 'string' || !tc.input.trim() || !tc.expected.trim()) {
+        throw new BadRequestException('Each test case needs a non-empty input and expected output');
+      }
+    }
+
+    const existing = await this.prisma.testCase.count({ where: { problemId: problem.id } });
+    if (existing > 0) {
+      throw new BadRequestException('This problem already has test cases seeded. Seeding is locked.');
+    }
+
+    await this.prisma.testCase.createMany({
+      data: testCases.map(tc => ({
+        problemId: problem.id,
+        input: tc.input,
+        expected: tc.expected,
+        isPublic: tc.isPublic ?? true,
+      })),
+    });
+
+    return {
+      success: true,
+      seeded: testCases.length,
+      testCases: await this.prisma.testCase.findMany({ where: { problemId: problem.id } }),
+    };
   }
 
   async findOne(id: string) {
@@ -234,6 +294,7 @@ ${curriculum?.canonicalTitle ? `- Canonical reference problem for this skill: ${
         memoryLimit: data.memoryLimit || 256,
         optimalTime: data.optimalTime || 'O(N)',
         optimalSpace: data.optimalSpace || 'O(1)',
+        source: (pattern && subtopic) ? 'journey' : 'creator',
       }
     });
 
