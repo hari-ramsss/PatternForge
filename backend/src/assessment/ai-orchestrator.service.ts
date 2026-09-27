@@ -300,6 +300,11 @@ For each case, you must provide the raw input string (matching the format of the
   [1,2,3,1]
   Example Expected:
   true
+- NEVER prefix input values with parameter names. "nums = [1,2,3]" is WRONG; "[1,2,3]" is right. One parameter per line, raw JSON values only.
+- For design/data-structure problems driven by an operations list (e.g. "Design HashMap", "Min Stack"), the input MUST be exactly two lines:
+  line 1: JSON array of operation names starting with the constructor, e.g. ["MyHashMap","put","get","remove"]
+  line 2: JSON array of per-operation argument arrays, e.g. [[],[1,1],[1],[1]]
+  The expected output is a JSON array with one entry per operation, using null for void operations, e.g. [null,null,1,null]
 
 ### STRICT OUTPUT FORMAT:
 You MUST respond with a JSON object containing a "testCases" list, conforming exactly to this schema:

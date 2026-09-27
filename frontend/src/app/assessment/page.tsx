@@ -208,7 +208,7 @@ export default function AssessmentPage() {
     <div className="min-h-screen bg-[#FAF8F5] flex flex-col font-sans text-stone-850">
       {/* Mini top brand bar */}
       <header className="h-14 border-b border-[#EFECE6] bg-white flex items-center px-8 shrink-0">
-        <span className="font-serif text-lg font-bold text-stone-900 tracking-tight">PatternForge <span className="text-amber-600 font-sans text-xs px-2 py-0.5 rounded bg-amber-50 border border-amber-200 ml-1">AI</span></span>
+        <span className="font-sans text-lg font-bold text-stone-900 tracking-tight">PatternForge <span className="text-amber-600 font-sans text-xs px-2 py-0.5 rounded bg-amber-50 border border-amber-200 ml-1">AI</span></span>
       </header>
 
       {/* Main wizard screen */}
@@ -220,7 +220,7 @@ export default function AssessmentPage() {
             <div className="space-y-6">
               <div>
                 <span className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider block mb-1">Step 1 of 3</span>
-                <h2 className="font-serif text-2xl font-bold text-stone-900 leading-tight">Personalize Your Assessment</h2>
+                <h2 className="font-sans text-2xl font-bold text-stone-900 leading-tight">Personalize Your Assessment</h2>
                 <p className="text-stone-500 text-sm mt-0.5">Let's gather some info to calibrate your personalized target roadmap.</p>
               </div>
 
@@ -340,7 +340,7 @@ export default function AssessmentPage() {
               </div>
               <div className="space-y-2">
                 <span className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider block">Step 2 of 3</span>
-                <h2 className="font-serif text-3xl font-bold text-stone-900">Let's Calibrate Your Mind</h2>
+                <h2 className="font-sans text-3xl font-bold text-stone-900">Let's Calibrate Your Mind</h2>
                 <p className="text-stone-500 text-sm max-w-md mx-auto leading-relaxed">
                   We will present a 6-step conceptual quiz (pattern identification, complexity sliders, constraints checking). 
                   No coding is required. We evaluate your core baseline strategies.
@@ -389,13 +389,13 @@ export default function AssessmentPage() {
                 {quizIdx === 0 && (
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-serif text-lg font-bold text-stone-900">1. Pattern Recognition</h3>
+                      <h3 className="font-workspace text-lg font-bold text-stone-900">1. Pattern Recognition</h3>
                       <p className="text-stone-500 text-xs mt-0.5">Determine the core algorithmic pattern mapping the inputs to their corresponding outputs.</p>
                     </div>
 
                     <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 font-mono text-xs text-stone-600 space-y-1">
-                      <p><strong className="font-sans text-stone-800">Input:</strong> nums = [1, 2, 3, 4]</p>
-                      <p><strong className="font-sans text-stone-800">Output:</strong> sums = [1, 3, 6, 10]</p>
+                      <p><strong className="font-workspace text-stone-800">Input:</strong> nums = [1, 2, 3, 4]</p>
+                      <p><strong className="font-workspace text-stone-800">Output:</strong> sums = [1, 3, 6, 10]</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 pt-2">
@@ -420,13 +420,13 @@ export default function AssessmentPage() {
                 {quizIdx === 1 && (
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-serif text-lg font-bold text-stone-900">2. Pattern Recognition</h3>
+                      <h3 className="font-workspace text-lg font-bold text-stone-900">2. Pattern Recognition</h3>
                       <p className="text-stone-500 text-xs mt-0.5">Determine the core algorithmic pattern mapping the inputs to their corresponding outputs.</p>
                     </div>
 
                     <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 font-mono text-xs text-stone-600 space-y-1">
-                      <p><strong className="font-sans text-stone-800">Input:</strong> nums = [2, 1, 5, 1, 3, 2], k = 3</p>
-                      <p><strong className="font-sans text-stone-800">Output:</strong> max_sum = 9</p>
+                      <p><strong className="font-workspace text-stone-800">Input:</strong> nums = [2, 1, 5, 1, 3, 2], k = 3</p>
+                      <p><strong className="font-workspace text-stone-800">Output:</strong> max_sum = 9</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 pt-2">
@@ -451,7 +451,7 @@ export default function AssessmentPage() {
                 {quizIdx === 2 && (
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-serif text-lg font-bold text-stone-900">3. Critical Observations</h3>
+                      <h3 className="font-workspace text-lg font-bold text-stone-900">3. Critical Observations</h3>
                       <p className="text-stone-500 text-xs mt-0.5">Select the TWO constraints/implications that are mathematically critical for Kadane's maximum subarray sum algorithm.</p>
                     </div>
 
@@ -490,7 +490,7 @@ export default function AssessmentPage() {
                 {quizIdx === 3 && (
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-serif text-lg font-bold text-stone-900">4. Complexity Analysis</h3>
+                      <h3 className="font-workspace text-lg font-bold text-stone-900">4. Complexity Analysis</h3>
                       <p className="text-stone-500 text-xs mt-0.5">Identify the tightest time complexity bound for the following nested subarray sum calculation code.</p>
                     </div>
 
@@ -524,7 +524,7 @@ for i in range(len(arr)):
                 {quizIdx === 4 && (
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-serif text-lg font-bold text-stone-900">5. Critical Invariants</h3>
+                      <h3 className="font-workspace text-lg font-bold text-stone-900">5. Critical Invariants</h3>
                       <p className="text-stone-500 text-xs mt-0.5">Select the TWO correct invariants concerning finding the shortest path on a weighted graph with positive weights.</p>
                     </div>
 
@@ -563,7 +563,7 @@ for i in range(len(arr)):
                 {quizIdx === 5 && (
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-serif text-lg font-bold text-stone-900">6. Complexity Analysis</h3>
+                      <h3 className="font-workspace text-lg font-bold text-stone-900">6. Complexity Analysis</h3>
                       <p className="text-stone-500 text-xs mt-0.5">Determine the tightest time complexity for this standard searching logic block.</p>
                     </div>
 
@@ -630,7 +630,7 @@ while low <= high:
                 <div className="absolute inset-0 rounded-full border-4 border-amber-100 border-t-amber-600 animate-spin" />
               </div>
               <div className="space-y-1">
-                <h3 className="font-serif text-lg font-bold text-stone-900">AI Scoring Engine Active</h3>
+                <h3 className="font-sans text-lg font-bold text-stone-900">AI Scoring Engine Active</h3>
                 <p className="text-stone-450 text-xs">Evaluating your logic responses and tracking pattern alignment...</p>
               </div>
             </div>
@@ -644,7 +644,7 @@ while low <= high:
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <span className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider block">Assessment Complete</span>
-                <h2 className="font-serif text-2xl font-bold text-stone-900 leading-tight">Your Ability Profile</h2>
+                <h2 className="font-sans text-2xl font-bold text-stone-900 leading-tight">Your Ability Profile</h2>
                 <p className="text-stone-500 text-xs mt-0.5">Your diagnostic baseline scores across six core dimensions.</p>
               </div>
 

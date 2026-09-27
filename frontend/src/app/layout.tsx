@@ -1,15 +1,23 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Plus_Jakarta_Sans, Nunito_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/providers";
 
-const inter = Inter({
-  variable: "--font-sans",
+// Dashboard / app-wide UI — nav, cards, buttons, headings outside the workspace.
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-dashboard-raw",
   subsets: ["latin"],
 });
 
-const playfair = Playfair_Display({
-  variable: "--font-serif",
+// Coding / learning workspace — problem statements, examples, hints, tabs.
+const nunitoSans = Nunito_Sans({
+  variable: "--font-workspace-raw",
+  subsets: ["latin"],
+});
+
+// Code / technical content — editor, inline code, test cases, console output.
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-code-raw",
   subsets: ["latin"],
 });
 
@@ -26,7 +34,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${playfair.variable} h-full antialiased`}
+      className={`${plusJakartaSans.variable} ${nunitoSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#FAF8F5] text-stone-900 font-sans">
         <Providers>

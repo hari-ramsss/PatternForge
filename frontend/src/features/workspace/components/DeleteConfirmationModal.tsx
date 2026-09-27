@@ -38,7 +38,7 @@ export default function DeleteConfirmationModal({
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-serif text-lg font-bold text-stone-900 leading-snug">Confirm Problem Deletion</h3>
+            <h3 className="font-sans text-lg font-bold text-stone-900 leading-snug">Confirm Problem Deletion</h3>
             <span className="text-[11px] font-mono text-rose-600 font-bold uppercase tracking-wider">Warning: Permanent Database Purge</span>
           </div>
         </div>

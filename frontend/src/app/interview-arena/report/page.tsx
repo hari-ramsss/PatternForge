@@ -53,7 +53,7 @@ export default function OaReportPage() {
       <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center font-sans text-stone-600">
         <div className="bg-white border border-[#EFECE6] p-8 rounded-2xl shadow-sm text-center space-y-4 max-w-sm">
           <Award className="w-10 h-10 text-amber-600 mx-auto animate-bounce" />
-          <h3 className="font-serif text-lg font-bold text-stone-900">No Assessment Session Found</h3>
+          <h3 className="font-sans text-lg font-bold text-stone-900">No Assessment Session Found</h3>
           <p className="text-xs text-stone-500">Launch a corporate assessment from the Technical Online Assessment Arena to generate an evaluation report.</p>
           <button
             onClick={() => router.push('/interview-arena')}
@@ -92,7 +92,7 @@ export default function OaReportPage() {
             <span>Arena</span>
           </button>
           <div className="h-4 w-px bg-stone-300"></div>
-          <span className="font-serif text-lg font-bold text-stone-900 tracking-tight flex items-center gap-2">
+          <span className="font-sans text-lg font-bold text-stone-900 tracking-tight flex items-center gap-2">
             <Award className="w-5 h-5 text-amber-600" />
             <span>Technical Evaluation Report Card</span>
           </span>
@@ -115,7 +115,7 @@ export default function OaReportPage() {
               <Building2 className="w-4 h-4 text-amber-600" />
               <span>{report.company} Corporate Technical Online Assessment</span>
             </div>
-            <h1 className="font-serif text-3xl font-bold text-stone-900">{report.problemTitle}</h1>
+            <h1 className="font-sans text-3xl font-bold text-stone-900">{report.problemTitle}</h1>
             <p className="text-xs text-stone-600 max-w-xl leading-relaxed">
               Automated AI candidate evaluation based on runtime correctness, Big-O efficiency curves, code cleanliness, and vocal reasoning transcript.
             </p>
@@ -123,7 +123,7 @@ export default function OaReportPage() {
 
           <div className="flex flex-col items-center md:items-end gap-2 shrink-0">
             <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider">Hiring Decision Verdict</span>
-            <span className={`px-4 py-2 rounded-2xl font-serif text-lg font-bold shadow-md uppercase tracking-wider border ${getVerdictBadgeClass(report.hiringVerdict)}`}>
+            <span className={`px-4 py-2 rounded-2xl font-sans text-lg font-bold shadow-md uppercase tracking-wider border ${getVerdictBadgeClass(report.hiringVerdict)}`}>
               {report.hiringVerdict}
             </span>
             <span className="text-xs font-mono font-bold text-stone-700">Candidate Score: {report.overallScore}/100</span>
@@ -167,7 +167,7 @@ export default function OaReportPage() {
 
         {/* AI Summary Feedback Commentary */}
         <div className="bg-white border border-[#EFECE6] rounded-2xl p-6 shadow-xs space-y-4 font-sans">
-          <h3 className="font-serif text-lg font-bold text-stone-900 border-b border-stone-100 pb-2">
+          <h3 className="font-sans text-lg font-bold text-stone-900 border-b border-stone-100 pb-2">
             Detailed Evaluator Analysis
           </h3>
           <p className="text-xs text-stone-700 leading-relaxed font-sans">{report.summaryFeedback}</p>
@@ -203,7 +203,7 @@ export default function OaReportPage() {
         <div className="bg-stone-900 text-stone-200 border border-stone-800 rounded-2xl p-6 shadow-md space-y-3 font-sans">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-400" />
-            <h3 className="font-serif text-base font-bold text-white">Recommended Growth Modules</h3>
+            <h3 className="font-sans text-base font-bold text-white">Recommended Growth Modules</h3>
           </div>
           <p className="text-xs text-stone-400">
             Based on this assessment report, practice drills in these categories to elevate your rank for upcoming interviews:

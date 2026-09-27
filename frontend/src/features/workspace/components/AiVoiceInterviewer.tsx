@@ -171,7 +171,7 @@ export default function AiVoiceInterviewer({
   };
 
   return (
-    <div className="bg-[#141413] border border-stone-800 rounded-2xl p-5 text-stone-200 font-sans space-y-4 shadow-xl">
+    <div className="bg-[#141413] border border-stone-800 rounded-2xl p-5 text-stone-200 font-workspace space-y-4 shadow-xl">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-stone-850 pb-3">
         <div className="flex items-center gap-2.5">
@@ -179,7 +179,7 @@ export default function AiVoiceInterviewer({
             <Bot className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="font-serif text-sm font-bold text-stone-100">{company} AI Technical Voice Interviewer</h4>
+            <h4 className="font-workspace text-sm font-bold text-stone-100">{company} AI Technical Voice Interviewer</h4>
             <span className="text-[10px] text-stone-400 font-mono">10-Minute Interactive Technical Q&A Round</span>
           </div>
         </div>
@@ -199,7 +199,7 @@ export default function AiVoiceInterviewer({
       </div>
 
       {/* Conversation Thread */}
-      <div className="bg-[#1A1A18] border border-stone-800 rounded-xl p-4 min-h-[180px] max-h-[260px] overflow-y-auto space-y-3 font-sans text-xs leading-relaxed">
+      <div className="bg-[#1A1A18] border border-stone-800 rounded-xl p-4 min-h-[180px] max-h-[260px] overflow-y-auto space-y-3 font-workspace text-xs leading-relaxed">
         {messages.map((msg, idx) => (
           <div
             key={idx}
@@ -253,7 +253,7 @@ export default function AiVoiceInterviewer({
                 handleStudentAnswer();
               }
             }}
-            className="flex-1 bg-[#1A1A18] border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-200 outline-none focus:border-amber-500 transition font-sans"
+            className="flex-1 bg-[#1A1A18] border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-200 outline-none focus:border-amber-500 transition font-workspace"
           />
 
           <button

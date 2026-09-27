@@ -94,7 +94,7 @@ export default function MonacoWrapper({ theme = 'dark' }: MonacoWrapperProps) {
         options={{
           minimap: { enabled: false },
           fontSize: 14,
-          fontFamily: 'Fira Code, JetBrains Mono, monospace',
+          fontFamily: 'var(--font-code)',
           lineHeight: 22,
           scrollBeyondLastLine: false,
           automaticLayout: true,

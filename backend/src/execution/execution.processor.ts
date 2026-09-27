@@ -154,7 +154,7 @@ export class ExecutionProcessor extends WorkerHost {
     const payloads = testCases.map((tc) => ({
       source_code: this.wrapCode(submission.code, submission.language, submission.problem.title),
       language_id: languageId,
-      stdin: tc.input,
+      stdin: this.sanitizeStdin(tc.input),
       ...(tc.expected && tc.expected.trim() !== '' ? { expected_output: tc.expected } : {}),
       cpu_limit: 2.0,
       memory_limit: 131072, // 128MB RAM limit in KB
@@ -300,8 +300,31 @@ export class ExecutionProcessor extends WorkerHost {
     }
   }
 
-  private wrapCode(code: string, language: string, problemTitle: string): string {
-    const titleSlug = problemTitle.toLowerCase().replace(/\s+/g, '-');
+  // Strip 'identifier = ' prefixes from stdin lines ('nums = [1,2]' -> '[1,2]').
+  // Only rewrites a line when the remainder parses as JSON, so free-text args
+  // and multi-value one-line inputs pass through untouched for the drivers.
+  private sanitizeStdin(input: string): string {
+    if (!input) return input;
+    return input
+      .split('\n')
+      .map((line) => {
+        const trimmed = line.trim();
+        const eq = trimmed.indexOf('=');
+        if (eq <= 0) return line;
+        const head = trimmed.slice(0, eq).trim();
+        if (!/^[A-Za-z_][A-Za-z0-9_$]*$/.test(head)) return line;
+        const rest = trimmed.slice(eq + 1).trim();
+        try {
+          JSON.parse(rest);
+          return rest;
+        } catch {
+          return line;
+        }
+      })
+      .join('\n');
+  }
+
+  private wrapCode(code: string, language: string, problemTitle: string): string {    const titleSlug = problemTitle.toLowerCase().replace(/\s+/g, '-');
     const langLower = language.toLowerCase();
     
     // 1. PYTHON DYNAMIC DRIVERS
@@ -441,7 +464,8 @@ if __name__ == '__main__':
     import sys
     import json
     import inspect
-    
+    import copy
+
     # Sandbox Security Lockdown: Disable system execution without breaking Python's internal threading._shutdown
     for _forbidden in ['os', 'subprocess', 'socket', 'urllib', 'requests', 'shutil', 'ctypes', 'pty']:
         sys.modules[_forbidden] = None
@@ -459,61 +483,203 @@ if __name__ == '__main__':
             return
         _orig_print(*args, **kwargs)
     builtins.print = _safe_print
-    
+
     stdin_content = sys.stdin.read()
     lines = [line.strip() for line in stdin_content.splitlines() if line.strip()]
-    
-    try:
-        sol = Solution()
-        methods = [m for m in dir(sol) if not m.startswith('__') and callable(getattr(sol, m))]
-        if not methods:
-            raise Exception("No callable methods found on Solution class")
-        
-        method_name = 'solve'
-        if 'solve' in methods:
-            method_name = 'solve'
-        elif len(methods) > 0:
-            method_name = methods[0]
-            
-        method = getattr(sol, method_name)
-        sig = inspect.signature(method)
-        params = list(sig.parameters.values())
-        
-        args = []
-        for i, param in enumerate(params):
-            if i >= len(lines):
-                break
-            val_str = lines[i]
-            try:
-                parsed_val = json.loads(val_str)
-            except Exception:
-                if val_str.lower() in ('true', 'false'):
-                    parsed_val = val_str.lower() == 'true'
-                else:
+
+    # Names injected by the harness prelude — never treat these as the user's solution class
+    _PRELUDE_NAMES = {'TreeNode', 'ListNode', 'List', 'Dict', 'Tuple', 'Optional'}
+
+    def _find_user_class(preferred=None):
+        if preferred:
+            _cls = globals().get(preferred)
+            if inspect.isclass(_cls):
+                return _cls
+        _cls = globals().get('Solution')
+        if inspect.isclass(_cls):
+            return _cls
+        for _name, _obj in list(globals().items()):
+            if inspect.isclass(_obj) and _name not in _PRELUDE_NAMES and not _name.startswith('_'):
+                return _obj
+        return None
+
+    def _to_jsonable(value):
+        if isinstance(value, TreeNode):
+            return tree_to_list(value)
+        if isinstance(value, ListNode):
+            _out = []
+            while value:
+                _out.append(value.val)
+                value = value.next
+            return _out
+        return value
+
+    def _dump(value):
+        # Compact separators: expected outputs are compared as raw strings, and
+        # json.dumps' default " , " spacing fails exact-match judging
+        return json.dumps(value, separators=(',', ':'))
+
+    def _strip_label(s):
+        # Tolerate 'nums = [1,2]' style inputs: drop a leading identifier + '='
+        if '=' in s:
+            _head, _eq, _tail = s.partition('=')
+            _h = _head.strip()
+            if _h.isidentifier() and not _h.startswith('_'):
+                return _tail.strip()
+        return s
+
+    def _split_top_level(s):
+        # Split on commas outside any bracket/quote: 'nums = [1,2], k = 3' -> two segments
+        _parts, _depth, _cur, _in_str = [], 0, '', False
+        for _ch in s:
+            if _in_str:
+                _cur += _ch
+                if _ch == '"':
+                    _in_str = False
+                continue
+            if _ch == '"':
+                _in_str = True
+                _cur += _ch
+                continue
+            if _ch in '[{(':
+                _depth += 1
+            elif _ch in ']})':
+                _depth -= 1
+            elif _ch == ',' and _depth == 0:
+                _parts.append(_cur)
+                _cur = ''
+                continue
+            _cur += _ch
+        if _cur.strip():
+            _parts.append(_cur)
+        return [_p.strip() for _p in _parts if _p.strip()]
+
+    def _parse_line(s):
+        # Returns the list of JSON values found on this line, or None when the
+        # line is not JSON-ish (caller falls back to scalar coercion)
+        _s = _strip_label(s.strip())
+        try:
+            return [json.loads(_s)]
+        except Exception:
+            pass
+        _segs = _split_top_level(_s)
+        if len(_segs) > 1:
+            _vals = []
+            for _seg in _segs:
+                _raw = _strip_label(_seg)
+                try:
+                    _vals.append(json.loads(_raw))
+                except Exception:
                     try:
-                        parsed_val = int(val_str)
+                        _vals.append(int(_raw))
                     except ValueError:
                         try:
-                            parsed_val = float(val_str)
+                            _vals.append(float(_raw))
                         except ValueError:
-                            parsed_val = val_str
-            if isinstance(parsed_val, list):
-                p_name = param.name.lower()
-                p_anno = str(param.annotation).lower()
-                if 'treenode' in p_anno or p_name in ('root', 'tree'):
-                    parsed_val = build_tree_from_list(parsed_val)
-                elif 'listnode' in p_anno or p_name in ('head', 'node'):
-                    parsed_val = build_linked_list(parsed_val)
+                            _vals.append(_raw)
+            return _vals
+        return None
 
-            args.append(parsed_val)
-            
-        ans = method(*args)
-        if isinstance(ans, TreeNode):
-            print(json.dumps(tree_to_list(ans)))
-        elif isinstance(ans, (list, dict, bool, int, float, str)) or ans is None:
-            print(json.dumps(ans))
+    try:
+        # ---- Mode 1: Design problems (ops + args protocol) ----
+        # Input shape: ["MyHashMap","put","get"] / [[],[1,2],[1]] — first op names
+        # the class to construct, the rest are method calls. Output is one JSON
+        # array of per-call results (None -> null), like LeetCode.
+        design_ops = None
+        design_args = None
+        if len(lines) >= 2:
+            try:
+                _ops_vals = _parse_line(lines[0])
+                _args_vals = _parse_line(lines[1])
+                _maybe_ops = _ops_vals[0] if _ops_vals else None
+                _maybe_args = _args_vals[0] if _args_vals else None
+                if (isinstance(_maybe_ops, list) and _maybe_ops
+                        and all(isinstance(_op, str) for _op in _maybe_ops)
+                        and isinstance(_maybe_args, list)
+                        and len(_maybe_args) == len(_maybe_ops)
+                        and all(isinstance(_a, list) for _a in _maybe_args)):
+                    design_ops = _maybe_ops
+                    design_args = _maybe_args
+            except Exception:
+                pass
+
+        if design_ops is not None:
+            _cls = _find_user_class(design_ops[0])
+            if _cls is None:
+                raise Exception("Could not find class '" + str(design_ops[0]) + "' (or any user-defined class) in your code")
+            _results = [None]
+            _inst = _cls(*design_args[0])
+            for _op, _op_args in zip(design_ops[1:], design_args[1:]):
+                _res = getattr(_inst, _op)(*_op_args)
+                _results.append(_to_jsonable(_res))
+            print(_dump(_results))
+
         else:
-            print(ans)
+            # ---- Mode 2: Single call on a solution class ----
+            _cls = _find_user_class()
+            if _cls is None:
+                raise Exception("No solution class found in your code")
+            sol = _cls()
+            methods = [m for m in dir(sol) if not m.startswith('__') and callable(getattr(sol, m))]
+            if not methods:
+                raise Exception("No callable methods found on your solution class")
+
+            method_name = 'solve'
+            if 'solve' in methods:
+                method_name = 'solve'
+            elif len(methods) > 0:
+                method_name = methods[0]
+
+            method = getattr(sol, method_name)
+            sig = inspect.signature(method)
+            params = list(sig.parameters.values())
+
+            arg_values = []
+            for val_str in lines:
+                _vals = _parse_line(val_str)
+                if _vals is None:
+                    if val_str.lower() in ('true', 'false'):
+                        arg_values.append(val_str.lower() == 'true')
+                    else:
+                        try:
+                            arg_values.append(int(val_str))
+                        except ValueError:
+                            try:
+                                arg_values.append(float(val_str))
+                            except ValueError:
+                                arg_values.append(val_str)
+                elif len(_vals) == 1:
+                    arg_values.append(_vals[0])
+                else:
+                    arg_values.extend(_vals)
+
+            args = []
+            for i, param in enumerate(params):
+                if i >= len(arg_values):
+                    break
+                parsed_val = arg_values[i]
+                if isinstance(parsed_val, list):
+                    p_name = param.name.lower()
+                    p_anno = str(param.annotation).lower()
+                    if 'treenode' in p_anno or p_name in ('root', 'tree'):
+                        parsed_val = build_tree_from_list(parsed_val)
+                    elif 'listnode' in p_anno or p_name in ('head', 'node'):
+                        parsed_val = build_linked_list(parsed_val)
+
+                args.append(parsed_val)
+
+            args_snapshot = copy.deepcopy(args)
+            ans = method(*args)
+            if isinstance(ans, TreeNode):
+                print(_dump(tree_to_list(ans)))
+            elif ans is None and args and isinstance(args[0], list) and args[0] != args_snapshot[0]:
+                # In-place problems (rotate array, move zeroes, sort colors...):
+                # the method returns None but is judged on the mutated input
+                print(_dump(args[0]))
+            elif isinstance(ans, (list, dict, bool, int, float, str)) or ans is None:
+                print(_dump(ans))
+            else:
+                print(ans)
     except Exception as e:
         print(f"Driver Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -577,7 +743,7 @@ try {
         return `${code}
 const fs = require('fs');
 try {
-    const lines = fs.readFileSync(0, 'utf-8').trim().split('\n');
+    const lines = fs.readFileSync(0, 'utf-8').trim().split('\\n');
     if (lines.length >= 2) {
         const nums = JSON.parse(lines[0]);
         const k = parseInt(lines[1]);
@@ -594,36 +760,132 @@ try {
       // Fallback: Dynamic Reflection for Custom Problems
       return `${code}
 const fs = require('fs');
-try {
-    const lines = fs.readFileSync(0, 'utf-8').trim().split('\n').map(l => l.trim()).filter(l => l);
-    const sol = new Solution();
-    
-    const proto = Object.getPrototypeOf(sol);
-    const methods = Object.getOwnPropertyNames(proto).filter(m => m !== 'constructor' && typeof sol[m] === 'function');
-    if (methods.length === 0) {
-        throw new Error("No custom methods found on Solution class");
-    }
-    
-    let methodName = 'solve';
-    if (methods.includes('solve')) {
-        methodName = 'solve';
-    } else {
-        methodName = methods[0];
-    }
-    
-    const args = lines.map(line => {
+const _PRELUDE_NAMES = new Set(['TreeNode', 'ListNode']);
+function _findClass(preferred) {
+    const _candidates = [];
+    if (preferred && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(preferred)) _candidates.push(preferred);
+    _candidates.push('Solution');
+    for (const _name of _candidates) {
         try {
-            return JSON.parse(line);
-        } catch (err) {
-            if (line.toLowerCase() === 'true') return true;
-            if (line.toLowerCase() === 'false') return false;
-            if (!isNaN(line)) return Number(line);
-            return line;
+            const _cls = eval(_name);
+            if (typeof _cls === 'function') return _cls;
+        } catch (e) {}
+    }
+    return null;
+}
+function _stripLabel(s) {
+    const _eq = s.indexOf('=');
+    if (_eq > 0) {
+        const _head = s.slice(0, _eq).trim();
+        if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(_head)) return s.slice(_eq + 1).trim();
+    }
+    return s;
+}
+function _splitTopLevel(s) {
+    const _parts = [];
+    let _depth = 0, _cur = '', _inStr = false;
+    for (const _ch of s) {
+        if (_inStr) {
+            _cur += _ch;
+            if (_ch === '"') _inStr = false;
+            continue;
         }
-    });
+        if (_ch === '"') { _inStr = true; _cur += _ch; continue; }
+        if (_ch === '[' || _ch === '{' || _ch === '(') _depth++;
+        else if (_ch === ']' || _ch === '}' || _ch === ')') _depth--;
+        else if (_ch === ',' && _depth === 0) { _parts.push(_cur); _cur = ''; continue; }
+        _cur += _ch;
+    }
+    if (_cur.trim()) _parts.push(_cur);
+    return _parts.map(p => p.trim()).filter(p => p);
+}
+function _parseLine(s) {
+    const _s = _stripLabel(s.trim());
+    try { return [JSON.parse(_s)]; } catch (e) {}
+    const _segs = _splitTopLevel(_s);
+    if (_segs.length > 1) {
+        return _segs.map(_seg => {
+            const _raw = _stripLabel(_seg);
+            try { return JSON.parse(_raw); } catch (e2) { return isNaN(_raw) ? _raw : Number(_raw); }
+        });
+    }
+    return null;
+}
+try {
+    const lines = fs.readFileSync(0, 'utf-8').trim().split('\\n').map(l => l.trim()).filter(l => l);
 
-    const ans = sol[methodName](...args);
-    console.log(JSON.stringify(ans));
+    // ---- Mode 1: Design problems (ops + args protocol) ----
+    let design = null;
+    if (lines.length >= 2) {
+        try {
+            const _opsVals = _parseLine(lines[0]);
+            const _argsVals = _parseLine(lines[1]);
+            const ops = _opsVals && _opsVals.length === 1 ? _opsVals[0] : null;
+            const argss = _argsVals && _argsVals.length === 1 ? _argsVals[0] : null;
+            if (Array.isArray(ops) && ops.length > 0 && ops.every(o => typeof o === 'string')
+                && Array.isArray(argss) && argss.length === ops.length && argss.every(a => Array.isArray(a))) {
+                design = { ops, argss };
+            }
+        } catch (e) {}
+    }
+
+    if (design) {
+        const Cls = _findClass(design.ops[0]);
+        if (!Cls) throw new Error("Could not find class '" + design.ops[0] + "' in your code");
+        const inst = new Cls(...design.argss[0]);
+        const results = [null];
+        for (let i = 1; i < design.ops.length; i++) {
+            if (typeof inst[design.ops[i]] !== 'function') {
+                throw new Error("Method '" + design.ops[i] + "' not found on class '" + design.ops[0] + "'");
+            }
+            results.push(inst[design.ops[i]](...design.argss[i]));
+        }
+        console.log(JSON.stringify(results));
+    } else {
+        // ---- Mode 2: Single call on a solution class ----
+        const SolClass = _findClass();
+        if (!SolClass) throw new Error("No solution class found in your code");
+        const sol = new SolClass();
+
+        const proto = Object.getPrototypeOf(sol);
+        const methods = Object.getOwnPropertyNames(proto).filter(m => m !== 'constructor' && typeof sol[m] === 'function');
+        if (methods.length === 0) {
+            throw new Error("No custom methods found on your solution class");
+        }
+
+        let methodName = 'solve';
+        if (methods.includes('solve')) {
+            methodName = 'solve';
+        } else {
+            methodName = methods[0];
+        }
+
+        const argValues = [];
+        for (const line of lines) {
+            const vals = _parseLine(line);
+            if (vals === null) {
+                if (line.toLowerCase() === 'true') argValues.push(true);
+                else if (line.toLowerCase() === 'false') argValues.push(false);
+                else if (!isNaN(line)) argValues.push(Number(line));
+                else argValues.push(line);
+            } else if (vals.length === 1) {
+                argValues.push(vals[0]);
+            } else {
+                argValues.push(...vals);
+            }
+        }
+        const args = argValues;
+
+        const snapshot = JSON.parse(JSON.stringify(args));
+        const ans = sol[methodName](...args);
+        if (ans === undefined && args.length > 0 && Array.isArray(args[0])
+            && JSON.stringify(args[0]) !== JSON.stringify(snapshot[0])) {
+            // In-place problems: the method returns nothing but is judged on the mutated input
+            console.log(JSON.stringify(args[0]));
+        } else {
+            console.log(JSON.stringify(ans === undefined ? null : ans));
+        }
+    }
 } catch (e) {
     console.error("Driver Error:", e.message || e);
     process.exit(1);
@@ -921,7 +1183,7 @@ int main() {
             std::cout << ans[i];
             if (i < ans.size() - 1) std::cout << ",";
         }
-        std::cout << "]\n";
+        std::cout << "]\\n";
     }
     return 0;
 }

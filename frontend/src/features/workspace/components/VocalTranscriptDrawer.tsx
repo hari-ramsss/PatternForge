@@ -78,12 +78,12 @@ export default function VocalTranscriptDrawer({ onTranscriptUpdate }: VocalTrans
   };
 
   return (
-    <div className="bg-[#141413] border border-stone-800 rounded-2xl p-4 text-stone-200 font-sans space-y-3 shadow-md">
+    <div className="bg-[#141413] border border-stone-800 rounded-2xl p-4 text-stone-200 font-workspace space-y-3 shadow-md">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-stone-850 pb-2.5">
         <div className="flex items-center gap-2">
           <Volume2 className={`w-4 h-4 ${isListening ? 'text-amber-500 animate-bounce' : 'text-stone-400'}`} />
-          <h4 className="font-serif text-xs font-bold text-stone-200">Vocal Reasoning Transcript (Voice AI)</h4>
+          <h4 className="font-workspace text-xs font-bold text-stone-200">Vocal Reasoning Transcript (Voice AI)</h4>
         </div>
 
         <button

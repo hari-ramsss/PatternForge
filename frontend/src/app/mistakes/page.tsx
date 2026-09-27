@@ -89,7 +89,7 @@ export default function MistakesDashboardPage() {
             {loading ? (
               <div className="py-20 flex flex-col items-center gap-3">
                 <RefreshCw className="animate-spin text-amber-600 w-8 h-8" />
-                <p className="text-sm font-serif text-stone-500">Analyzing telemetry logs...</p>
+                <p className="text-sm font-sans text-stone-500">Analyzing telemetry logs...</p>
               </div>
             ) : apiError ? (
               <div className="space-y-3 rounded-3xl border-2 border-b-4 border-[#e8e1d3] bg-white p-8 text-center text-xs text-slate-500">
@@ -149,7 +149,7 @@ export default function MistakesDashboardPage() {
                         <div className="flex items-center gap-3">
                           <span className="font-mono font-bold text-slate-700">{item.score}/100</span>
                           <span
-                            className={`px-3 py-1 rounded-full font-serif text-xs font-bold uppercase tracking-wider ${item.verdict === 'STRONG HIRE'
+                            className={`px-3 py-1 rounded-full font-sans text-xs font-bold uppercase tracking-wider ${item.verdict === 'STRONG HIRE'
                               ? 'bg-emerald-500 text-white'
                               : item.verdict === 'HIRE'
                                 ? 'bg-emerald-600 text-white'

@@ -66,7 +66,7 @@ function FormatCoachMessage({ content }: { content: string }) {
   const parts = content.split(/(```[\s\S]*?```)/g);
 
   return (
-    <div className="space-y-2.5 text-xs leading-relaxed font-sans text-stone-800">
+    <div className="space-y-2.5 text-xs leading-relaxed font-workspace text-stone-800">
       {parts.map((part, i) => {
         if (part.startsWith('```') && part.endsWith('```')) {
           const rawInside = part.slice(3, -3).trim();
@@ -79,7 +79,7 @@ function FormatCoachMessage({ content }: { content: string }) {
           }
           return (
             <div key={i} className="my-3 rounded-xl overflow-hidden border border-stone-800 bg-[#141413] text-stone-200 font-mono text-xs shadow-xs">
-              <div className="bg-[#1e1e1c] px-3.5 py-2 border-b border-stone-800 flex items-center justify-between text-[10px] text-stone-400 font-sans font-semibold uppercase tracking-wider">
+              <div className="bg-[#1e1e1c] px-3.5 py-2 border-b border-stone-800 flex items-center justify-between text-[10px] text-stone-400 font-workspace font-semibold uppercase tracking-wider">
                 <span className="text-amber-400 font-bold">{lang}</span>
                 <span className="text-[9px] text-stone-500 font-mono">Code Snippet</span>
               </div>
@@ -100,7 +100,7 @@ function FormatCoachMessage({ content }: { content: string }) {
               if (trimmed.startsWith('#')) {
                 const headerText = trimmed.replace(/^#+\s*/, '');
                 return (
-                  <h4 key={lIdx} className="font-sans font-bold text-stone-900 text-xs mt-3 mb-1 flex items-center gap-1.5 border-b border-stone-100 pb-1">
+                  <h4 key={lIdx} className="font-workspace font-bold text-stone-900 text-xs mt-3 mb-1 flex items-center gap-1.5 border-b border-stone-100 pb-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block shrink-0"></span>
                     {formatInlineText(headerText)}
                   </h4>
@@ -346,6 +346,123 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
   const [customCases, setCustomCases] = useState<Array<{ id: string; input: string; expected: string }>>([]);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [activeTestCaseIdx, setActiveTestCaseIdx] = useState<number>(0);
+
+  // ---- Workspace pane resizing (description|editor split + editor|console split) ----
+  const mainRef = useRef<HTMLElement>(null);
+  const rightPaneRef = useRef<HTMLElement>(null);
+  const dragModeRef = useRef<'col' | 'row' | null>(null);
+  const [leftPct, setLeftPct] = useState(45); // description pane width, % of main
+  const [consolePct, setConsolePct] = useState(33); // console height, % of right pane
+  const [isDraggingPane, setIsDraggingPane] = useState<'col' | 'row' | null>(null);
+  const leftPctRef = useRef(leftPct);
+  const consolePctRef = useRef(consolePct);
+  leftPctRef.current = leftPct;
+  consolePctRef.current = consolePct;
+
+  useEffect(() => {
+    // Restore saved split positions (deferred so hydration renders defaults first)
+    const id = window.requestAnimationFrame(() => {
+      try {
+        const savedLeft = parseFloat(localStorage.getItem('pf-left-split') || '');
+        const savedConsole = parseFloat(localStorage.getItem('pf-console-split') || '');
+        if (!isNaN(savedLeft)) setLeftPct(Math.min(72, Math.max(24, savedLeft)));
+        if (!isNaN(savedConsole)) setConsolePct(Math.min(70, Math.max(15, savedConsole)));
+      } catch { /* private mode etc. */ }
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    if (!isDraggingPane) return;
+    const prev = document.body.style.userSelect;
+    document.body.style.userSelect = 'none';
+    return () => { document.body.style.userSelect = prev; };
+  }, [isDraggingPane]);
+
+  // Drag-state cursor swap lives on <html> (not this page's wrapper) so it
+  // pairs with the app-wide cursor rules in globals.css and keeps working
+  // even if the pointer briefly leaves this component's DOM subtree.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('pf-drag-col', isDraggingPane === 'col');
+    root.classList.toggle('pf-drag-row', isDraggingPane === 'row');
+    return () => {
+      root.classList.remove('pf-drag-col', 'pf-drag-row');
+    };
+  }, [isDraggingPane]);
+
+  const persistSplits = (left: number, consoleP: number) => {
+    try {
+      localStorage.setItem('pf-left-split', String(left));
+      localStorage.setItem('pf-console-split', String(consoleP));
+    } catch { /* ignore */ }
+  };
+
+  const handleColDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragModeRef.current = 'col';
+    setIsDraggingPane('col');
+  };
+  const handleColDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragModeRef.current !== 'col' || !mainRef.current) return;
+    const rect = mainRef.current.getBoundingClientRect();
+    const pct = ((e.clientX - rect.left) / rect.width) * 100;
+    const next = Math.min(72, Math.max(24, pct));
+    leftPctRef.current = next;
+    setLeftPct(next);
+  };
+  const handleColDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragModeRef.current !== 'col') return;
+    dragModeRef.current = null;
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    setIsDraggingPane(null);
+    persistSplits(leftPctRef.current, consolePctRef.current);
+  };
+  const handleColKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const delta = e.key === 'ArrowLeft' ? -2 : e.key === 'ArrowRight' ? 2 : 0;
+    if (!delta) return;
+    e.preventDefault();
+    const next = Math.min(72, Math.max(24, leftPctRef.current + delta));
+    leftPctRef.current = next;
+    setLeftPct(next);
+    persistSplits(next, consolePctRef.current);
+  };
+
+  const handleRowDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragModeRef.current = 'row';
+    setIsDraggingPane('row');
+  };
+  const handleRowDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragModeRef.current !== 'row' || !rightPaneRef.current) return;
+    const rect = rightPaneRef.current.getBoundingClientRect();
+    const pct = ((rect.bottom - e.clientY) / rect.height) * 100;
+    const next = Math.min(70, Math.max(15, pct));
+    consolePctRef.current = next;
+    setConsolePct(next);
+  };
+  const handleRowDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragModeRef.current !== 'row') return;
+    dragModeRef.current = null;
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    setIsDraggingPane(null);
+    persistSplits(leftPctRef.current, consolePctRef.current);
+  };
+  const handleRowKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const delta = e.key === 'ArrowUp' ? 2 : e.key === 'ArrowDown' ? -2 : 0;
+    if (!delta) return;
+    e.preventDefault();
+    const next = Math.min(70, Math.max(15, consolePctRef.current + delta));
+    consolePctRef.current = next;
+    setConsolePct(next);
+    persistSplits(leftPctRef.current, next);
+  };
   const [activeResultCaseIdx, setActiveResultCaseIdx] = useState<number>(0);
   const [loadTime] = useState(Date.now());
   const [vocalTranscript, setVocalTranscript] = useState('');
@@ -993,10 +1110,10 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#FAF8F5] text-stone-600 font-sans">
+      <div className="flex-1 flex items-center justify-center bg-[#FAF8F5] text-stone-600 font-workspace">
         <div className="flex flex-col items-center gap-3">
           <RefreshCw className="animate-spin text-amber-600 w-8 h-8" />
-          <p className="text-sm font-serif">Loading coding sandbox...</p>
+          <p className="text-sm font-workspace">Loading coding sandbox...</p>
         </div>
       </div>
     );
@@ -1004,11 +1121,11 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
 
   if (error || !problem || problemId === 'undefined') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF8F5] text-stone-850 font-serif p-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF8F5] text-stone-850 font-workspace p-6 text-center">
         <div className="max-w-md bg-white border border-stone-250 p-8 rounded-2xl shadow-sm space-y-4">
           <AlertTriangle className="mx-auto w-12 h-12 text-amber-500 animate-pulse" />
           <h2 className="text-xl font-bold text-stone-900">Problem Not Found</h2>
-          <p className="text-stone-600 text-xs font-sans leading-relaxed">
+          <p className="text-stone-600 text-xs font-workspace leading-relaxed">
             Could not retrieve details for problem identifier <span className="font-mono text-red-600 font-bold bg-stone-100 px-1.5 py-0.5 rounded">"{problemId}"</span>.
           </p>
           <button
@@ -1023,7 +1140,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
   }
 
   return (
-    <div className="min-h-screen lg:h-screen flex flex-col overflow-hidden bg-[#f8f5ed] text-[#17263a]">
+    <div className="pf-workspace min-h-screen lg:h-screen flex flex-col overflow-hidden bg-[#f8f5ed] text-[#17263a]">
       {/* Workspace Header */}
       <header className={`shrink-0 border-b-2 px-4 py-4 sm:px-6 ${isOaMode ? 'border-orange-200 bg-[#fff7df]' : 'border-[#e8e1d3] bg-[#fffdf8]'}`}>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1162,7 +1279,43 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
       </header>
 
       {/* Main Workspace split */}
-      <main className="flex-1 min-h-0 min-w-0 overflow-hidden lg:grid lg:grid-cols-[1.08fr_1.32fr]">
+      <main
+        ref={mainRef}
+        className="relative flex-1 min-h-0 min-w-0 overflow-hidden lg:grid lg:grid-cols-[1.08fr_1.32fr]"
+        style={{ gridTemplateColumns: `${leftPct}% 1fr` }}
+      >
+        {/* Vertical resize handle: description | editor (desktop grid only) */}
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize problem description and editor panes"
+          aria-valuemin={24}
+          aria-valuemax={72}
+          aria-valuenow={Math.round(leftPct)}
+          tabIndex={0}
+          onPointerDown={handleColDragStart}
+          onPointerMove={handleColDragMove}
+          onPointerUp={handleColDragEnd}
+          onPointerCancel={handleColDragEnd}
+          onLostPointerCapture={handleColDragEnd}
+          onKeyDown={handleColKeyDown}
+          className={`pf-col-resize group absolute inset-y-0 z-40 hidden w-5 -translate-x-1/2 touch-none select-none lg:flex lg:items-center lg:justify-center ${isDraggingPane === 'col' ? 'bg-[#e67b1f]/20' : 'hover:bg-[#e67b1f]/10'}`}
+          style={{ left: `${leftPct}%` }}
+          title="Drag to resize description and editor"
+        >
+          <span
+            aria-hidden
+            className={`pointer-events-none absolute inset-y-0 left-1/2 w-[4px] -translate-x-1/2 rounded-full shadow-[0_0_0_1px_rgba(23,38,58,0.35)] ${isDraggingPane === 'col' ? 'bg-[#e67b1f]' : 'bg-[#d4922a] group-hover:bg-[#e67b1f]'}`}
+          />
+          <span
+            aria-hidden
+            className={`pointer-events-none relative flex h-[76px] w-[18px] flex-col items-center justify-center gap-[5px] rounded-full border-2 border-b-4 shadow-[0_8px_18px_rgba(23,38,58,0.28)] transition-colors ${isDraggingPane === 'col' ? 'border-[#b86112] bg-[#e67b1f]' : 'border-[#d4922a] bg-[#fffdf8] group-hover:border-[#e67b1f] group-hover:bg-[#fff4d6]'}`}
+          >
+            <span className={`h-1 w-1 rounded-full ${isDraggingPane === 'col' ? 'bg-white' : 'bg-[#e67b1f]'}`} />
+            <span className={`h-1 w-1 rounded-full ${isDraggingPane === 'col' ? 'bg-white' : 'bg-[#e67b1f]'}`} />
+            <span className={`h-1 w-1 rounded-full ${isDraggingPane === 'col' ? 'bg-white' : 'bg-[#e67b1f]'}`} />
+          </span>
+        </div>
         {/* Left pane: Details & Analytics */}
         <section className="flex min-h-[52vh] w-full min-h-0 flex-col overflow-hidden border-b-2 border-[#e8e1d3] bg-[#fffdf8] lg:min-h-0 lg:border-b-0 lg:border-r-2">
           {/* Left Tab Bar Selector */}
@@ -1196,12 +1349,12 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                     <Sparkles className="w-4 h-4 fill-amber-400/30" />
                   </div>
                   <div>
-                    <h3 className="font-serif text-sm font-bold text-stone-900">AI Coding Coach</h3>
-                    <p className="text-[10px] text-stone-500 font-sans">Interactive Socratic guidance & hints</p>
+                    <h3 className="font-workspace text-sm font-bold text-stone-900">AI Coding Coach</h3>
+                    <p className="text-[10px] text-stone-500 font-workspace">Interactive Socratic guidance & hints</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-sans">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-workspace">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Online
                   </span>
@@ -1217,12 +1370,12 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                   >
                     <div
                       className={`max-w-[88%] rounded-2xl p-4 shadow-2xs ${msg.role === 'user'
-                        ? 'bg-amber-600 text-white font-sans text-xs leading-relaxed rounded-br-xs'
+                        ? 'bg-amber-600 text-white font-workspace text-xs leading-relaxed rounded-br-xs'
                         : 'bg-white border border-stone-200/80 text-stone-800 rounded-bl-xs'
                         }`}
                     >
                       {msg.role === 'user' ? (
-                        <p className="whitespace-pre-wrap font-sans text-xs">{msg.content}</p>
+                        <p className="whitespace-pre-wrap font-workspace text-xs">{msg.content}</p>
                       ) : (
                         <FormatCoachMessage content={msg.content} />
                       )}
@@ -1233,7 +1386,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                   <div className="flex justify-start">
                     <div className="bg-white border border-stone-200 rounded-2xl px-4 py-3 text-xs text-stone-500 flex items-center gap-2.5 animate-pulse shadow-2xs">
                       <RefreshCw className="animate-spin w-3.5 h-3.5 text-amber-500" />
-                      <span className="font-medium font-sans">Synthesizing response...</span>
+                      <span className="font-medium font-workspace">Synthesizing response...</span>
                     </div>
                   </div>
                 )}
@@ -1242,7 +1395,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
 
               {/* Suggested prompts list (Fixed above input) */}
               <div className="p-3 px-6 bg-stone-50/90 border-t border-stone-200/70 shrink-0">
-                <span className="text-[10px] text-stone-400 font-bold uppercase tracking-wider block mb-1.5 font-sans">Suggested Prompts:</span>
+                <span className="text-[10px] text-stone-400 font-bold uppercase tracking-wider block mb-1.5 font-workspace">Suggested Prompts:</span>
                 <div className="flex flex-wrap gap-2">
                   {[
                     "Give me a hint for this problem.",
@@ -1253,7 +1406,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                       key={idx}
                       onClick={() => handleSendPrompt(p)}
                       disabled={isSendingChat}
-                      className="px-3 py-1 bg-white border border-stone-200 text-stone-700 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 text-[11px] rounded-lg transition font-medium shadow-2xs shrink-0 font-sans"
+                      className="px-3 py-1 bg-white border border-stone-200 text-stone-700 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300 text-[11px] rounded-lg transition font-medium shadow-2xs shrink-0 font-workspace"
                     >
                       {p}
                     </button>
@@ -1275,12 +1428,12 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                     }}
                     disabled={isSendingChat}
                     placeholder="Ask your AI coach a question..."
-                    className="flex-1 bg-stone-50 border border-stone-200/90 rounded-xl px-4 py-2.5 text-xs text-stone-800 outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/10 transition font-sans"
+                    className="flex-1 bg-stone-50 border border-stone-200/90 rounded-xl px-4 py-2.5 text-xs text-stone-800 outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/10 transition font-workspace"
                   />
                   <button
                     onClick={() => handleSendPrompt(chatInput)}
                     disabled={isSendingChat || !chatInput.trim()}
-                    className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white text-xs font-semibold rounded-xl transition shadow-2xs flex items-center gap-1.5 font-sans"
+                    className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white text-xs font-semibold rounded-xl transition shadow-2xs flex items-center gap-1.5 font-workspace"
                   >
                     <span>Send</span>
                     <Send className="w-3.5 h-3.5" />
@@ -1319,10 +1472,10 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                     </div>
                   </div>
 
-                  <h2 className="mb-6 font-serif text-4xl font-bold leading-tight tracking-[-0.04em] text-stone-900">{problem.title}</h2>
+                  <h2 className="mb-6 font-workspace text-4xl font-bold leading-tight tracking-[-0.04em] text-stone-900">{problem.title}</h2>
 
                   {/* Description */}
-                  <div className="mb-8 space-y-4 font-serif text-[1.06rem] leading-[1.9] tracking-[0.01em] text-stone-800">
+                  <div className="mb-8 space-y-4 font-workspace text-[1.06rem] leading-[1.9] tracking-[0.01em] text-stone-800">
                     {problem.description.split('\n\n').map((para, idx) => (
                       <p key={idx} className="text-pretty">{formatInlineText(para)}</p>
                     ))}
@@ -1330,9 +1483,9 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
 
                   {/* Examples */}
                   <div className="space-y-6 mb-8">
-                    <h3 className="font-serif text-lg font-bold text-stone-900 border-b border-stone-100 pb-2">Examples</h3>
+                    <h3 className="font-workspace text-lg font-bold text-stone-900 border-b border-stone-100 pb-2">Examples</h3>
                     {problem.examples.map((ex, idx) => (
-                      <div key={ex.id} className="bg-stone-50 rounded-xl p-5 border border-stone-200 font-sans text-sm">
+                      <div key={ex.id} className="bg-stone-50 rounded-xl p-5 border border-stone-200 font-workspace text-sm">
                         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                           <p className="font-bold text-stone-800">Example {idx + 1}:</p>
                           <button
@@ -1345,10 +1498,10 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                           </button>
                         </div>
                         <div className="space-y-1.5 font-mono text-stone-600">
-                          <p><strong className="font-sans text-stone-800">Input:</strong> {ex.input}</p>
-                          <p><strong className="font-sans text-stone-800">Output:</strong> {ex.output}</p>
+                          <p><strong className="font-workspace text-stone-800">Input:</strong> {ex.input}</p>
+                          <p><strong className="font-workspace text-stone-800">Output:</strong> {ex.output}</p>
                           {ex.explanation && (
-                            <p className="mt-2 text-stone-500 text-xs italic"><strong className="font-sans text-stone-700 not-italic">Explanation:</strong> {ex.explanation}</p>
+                            <p className="mt-2 text-stone-500 text-xs italic"><strong className="font-workspace text-stone-700 not-italic">Explanation:</strong> {ex.explanation}</p>
                           )}
                         </div>
                       </div>
@@ -1360,7 +1513,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-200 bg-amber-50/80 px-4 py-3">
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700">Example visual</p>
-                          <h3 className="font-serif text-lg font-bold text-stone-900">{activeDiagram.label}</h3>
+                          <h3 className="font-workspace text-lg font-bold text-stone-900">{activeDiagram.label}</h3>
                         </div>
                         <div className="flex items-center gap-2">
                           {savedDiagrams.some((diagram) => diagram.exampleId === selectedExampleId) && (
@@ -1391,7 +1544,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
 
                   {/* Constraints */}
                   <div className="mb-8">
-                    <h3 className="font-serif text-lg font-bold text-stone-900 border-b border-stone-100 pb-2 mb-3">Constraints</h3>
+                    <h3 className="font-workspace text-lg font-bold text-stone-900 border-b border-stone-100 pb-2 mb-3">Constraints</h3>
                     <ul className="list-disc list-inside space-y-2 font-mono text-stone-600 text-sm bg-stone-50 p-4 rounded-xl border border-stone-200">
                       {problem.constraints.map((c) => (
                         <li key={c.id}>{formatInlineText(c.statement)}</li>
@@ -1401,7 +1554,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
 
                   {/* Target complexities */}
                   <div>
-                    <h3 className="font-serif text-lg font-bold text-stone-900 border-b border-stone-100 pb-2 mb-3">Optimal Target Complexities</h3>
+                    <h3 className="font-workspace text-lg font-bold text-stone-900 border-b border-stone-100 pb-2 mb-3">Optimal Target Complexities</h3>
                     <div className="grid grid-cols-2 gap-4 font-mono text-center text-sm">
                       <div className="bg-[#FAF8F5] border border-[#EFECE6] p-3 rounded-lg">
                         <span className="block text-xs text-stone-400 mb-1">Time Complexity</span>
@@ -1420,7 +1573,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
         </section>
 
         {/* Right pane: Editor & Console */}
-        <section className={`flex min-h-[70vh] w-full min-h-0 flex-col overflow-hidden border-t-2 lg:min-h-0 lg:border-t-0 ${isOaMode ? 'border-orange-200 bg-[#1d2b3a]' : 'border-[#e8e1d3] bg-[#17263a]'}`}>
+        <section ref={rightPaneRef} className={`flex min-h-[70vh] w-full min-h-0 flex-col overflow-hidden border-t-2 lg:min-h-0 lg:border-t-0 ${isOaMode ? 'border-orange-200 bg-[#1d2b3a]' : 'border-[#e8e1d3] bg-[#17263a]'}`}>
           {currentPhase !== 'CODING_UNLOCKED' &&
             currentPhase !== 'SUBMITTED' &&
             currentPhase !== 'ANALYZED' &&
@@ -1469,7 +1622,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                 {currentPhase === 'READING_PROBLEM' && (
                   <div className="space-y-6 animate-fadeIn">
                     <div className="space-y-2">
-                      <h3 className="font-serif text-2xl font-bold text-white flex items-center gap-2">
+                      <h3 className="font-workspace text-2xl font-bold text-white flex items-center gap-2">
                         <BookOpen className="w-6 h-6 text-amber-500" />
                         <span>Phase 1: Deep Comprehension</span>
                       </h3>
@@ -1533,7 +1686,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                 {currentPhase === 'APPROACH_REASONING' && (
                   <div className="space-y-5 animate-fadeIn">
                     <div className="space-y-1">
-                      <h3 className="font-serif text-2xl font-bold text-white flex items-center gap-2">
+                      <h3 className="font-workspace text-2xl font-bold text-white flex items-center gap-2">
                         <Sparkles className="w-6 h-6 text-amber-500 animate-bounce" />
                         <span>Phase 2: Approach Design</span>
                       </h3>
@@ -1598,7 +1751,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                           {approachScoring?.passed ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
                           <span>{approachScoring ? 'Approach Evaluated' : 'Evaluation Notice'}</span>
                         </div>
-                        <p className="font-normal font-sans text-stone-300 leading-relaxed">{approachFeedback}</p>
+                        <p className="font-normal font-workspace text-stone-300 leading-relaxed">{approachFeedback}</p>
 
                         {approachScoring && (
                           <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-stone-850 text-center font-mono text-[10px]">
@@ -1616,7 +1769,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                     )}
 
                     {approachScoring && (
-                      <div className="space-y-3 mt-2 text-xs font-sans">
+                      <div className="space-y-3 mt-2 text-xs font-workspace">
                         {approachScoring.strengths?.length > 0 && (
                           <div className="space-y-1">
                             <strong className="text-emerald-400 font-bold block text-[10px] uppercase tracking-wider">Strengths</strong>
@@ -1644,7 +1797,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                               <AlertTriangle className="w-4 h-4 shrink-0" />
                               <span>Pre-requisite Suggestion</span>
                             </div>
-                            <p className="text-stone-350 leading-relaxed font-sans">
+                            <p className="text-stone-350 leading-relaxed font-workspace">
                               It looks like you are struggling with this concept. We highly recommend completing this prerequisite problem first:
                             </p>
                             <div className="bg-stone-900 border border-stone-850 p-3 rounded-lg flex items-center justify-between mt-2">
@@ -1761,15 +1914,50 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
               </div>
 
               {/* Monaco Editor container */}
-              <div className="relative min-h-[360px] flex-1 min-h-0 overflow-hidden bg-[#101d2d]">
+              <div className="relative min-h-[180px] flex-1 min-h-0 overflow-hidden bg-[#101d2d]">
                 {isOaMode && <div className="pointer-events-none absolute left-4 top-3 z-10 rounded-full border border-orange-300/30 bg-orange-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-orange-200">Assessment editor</div>}
                 <div className="absolute inset-3 overflow-hidden sm:inset-4">
                   <MonacoWrapper theme="dark" />
                 </div>
               </div>
 
-              {/* Console / Output Tabs */}
-              <div className="flex min-h-[240px] h-1/3 min-h-0 flex-col overflow-hidden border-t-2 border-[#31445d] bg-[#17263a]">
+              {/* Horizontal resize handle: editor | console. In-flow so the grip is not clipped. */}
+              <div
+                role="separator"
+                aria-orientation="horizontal"
+                aria-label="Resize editor and execution panes"
+                aria-valuemin={15}
+                aria-valuemax={70}
+                aria-valuenow={Math.round(consolePct)}
+                tabIndex={0}
+                onPointerDown={handleRowDragStart}
+                onPointerMove={handleRowDragMove}
+                onPointerUp={handleRowDragEnd}
+                onPointerCancel={handleRowDragEnd}
+                onLostPointerCapture={handleRowDragEnd}
+                onKeyDown={handleRowKeyDown}
+                className={`pf-row-resize group relative z-40 flex h-5 shrink-0 touch-none select-none items-center justify-center ${isDraggingPane === 'row' ? 'bg-[#e67b1f]/30' : 'bg-[#24384f] hover:bg-[#31506e]'}`}
+                title="Drag to resize editor and execution"
+              >
+                <span
+                  aria-hidden
+                  className={`pointer-events-none absolute inset-x-0 top-1/2 h-[4px] -translate-y-1/2 shadow-[0_0_0_1px_rgba(23,38,58,0.45)] ${isDraggingPane === 'row' ? 'bg-[#e67b1f]' : 'bg-[#e8b15a] group-hover:bg-[#f0a441]'}`}
+                />
+                <span
+                  aria-hidden
+                  className={`pointer-events-none relative flex h-[16px] w-[76px] items-center justify-center gap-[5px] rounded-full border-2 border-b-[3px] shadow-[0_6px_14px_rgba(0,0,0,0.35)] ${isDraggingPane === 'row' ? 'border-[#b86112] bg-[#e67b1f]' : 'border-[#d4922a] bg-[#fffdf8] group-hover:border-[#e67b1f] group-hover:bg-[#fff4d6]'}`}
+                >
+                  <span className={`h-1 w-1 rounded-full ${isDraggingPane === 'row' ? 'bg-white' : 'bg-[#e67b1f]'}`} />
+                  <span className={`h-1 w-1 rounded-full ${isDraggingPane === 'row' ? 'bg-white' : 'bg-[#e67b1f]'}`} />
+                  <span className={`h-1 w-1 rounded-full ${isDraggingPane === 'row' ? 'bg-white' : 'bg-[#e67b1f]'}`} />
+                </span>
+              </div>
+
+              {/* Console / Output Tabs — height drag-controlled */}
+              <div
+                className="relative flex min-h-[120px] flex-col overflow-hidden bg-[#17263a]"
+                style={{ height: `${consolePct}%` }}
+              >
                 {/* Console Tab triggers */}
                 <div className="h-9 px-4 bg-stone-900 border-b border-stone-800 flex items-center gap-4 text-xs font-medium text-stone-400">
                   <button
@@ -1954,7 +2142,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                           {!currentCase ? (
                             <p className="text-stone-500 italic text-xs">No test cases configured.</p>
                           ) : currentCase.isCustom ? (
-                            <div className="space-y-4 pt-1 font-sans text-xs">
+                            <div className="space-y-4 pt-1 font-workspace text-xs">
                               {/* Custom Input */}
                               <div className="space-y-1.5">
                                 <label className="text-[10px] text-amber-400/90 font-semibold block uppercase tracking-wider">
@@ -1982,7 +2170,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                               </div>
                             </div>
                           ) : (
-                            <div className="space-y-3 pt-1 font-sans text-xs">
+                            <div className="space-y-3 pt-1 font-workspace text-xs">
                               {currentCase.input.split('\n').filter((l: string) => l.trim()).map((val: string, idx: number) => (
                                 <div key={idx} className="space-y-1">
                                   <span className="text-[10px] text-stone-500 font-semibold block uppercase tracking-wider">
@@ -2007,14 +2195,14 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                       );
                     })()
                   ) : (
-                    <div className="space-y-3 font-sans">
+                    <div className="space-y-3 font-workspace">
                       {isCompiling ? (
                         <div className="flex items-center gap-2 text-stone-400 animate-pulse">
                           <RefreshCw className="animate-spin w-4 h-4 text-amber-500" />
                           <span>Sandbox executing test cases...</span>
                         </div>
                       ) : verdict ? (
-                        <div className="space-y-4 h-full flex flex-col font-sans">
+                        <div className="space-y-4 h-full flex flex-col font-workspace">
                           {/* Check if we have individual test case results */}
                           {verdict.testCases && verdict.testCases.length > 0 ? (
                             <div className="space-y-4">
@@ -2058,8 +2246,8 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                                     <div className="space-y-1">
                                       <span className="text-[10px] text-stone-500 font-semibold uppercase tracking-wider block">Input</span>
                                       <div className="bg-stone-900 border border-stone-800 rounded-lg p-2.5 font-mono text-stone-300">
-                                        <p className="text-stone-500"><strong className="text-stone-400 font-sans">nums =</strong> {numsVal}</p>
-                                        <p className="text-stone-500"><strong className="text-stone-400 font-sans">target =</strong> {targetVal}</p>
+                                        <p className="text-stone-500"><strong className="text-stone-400 font-workspace">nums =</strong> {numsVal}</p>
+                                        <p className="text-stone-500"><strong className="text-stone-400 font-workspace">target =</strong> {targetVal}</p>
                                       </div>
                                     </div>
 
@@ -2093,7 +2281,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                               })()}
                             </div>
                           ) : (
-                            <div className="space-y-3 font-sans">
+                            <div className="space-y-3 font-workspace">
                               {/* Fallback for general status or compile errors */}
                               <div className="flex items-center gap-2">
                                 {verdict.status === 'ACCEPTED' ? (
@@ -2152,7 +2340,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
 
       {/* Skill Jump Celebration — shown only after a successful submission */}
       {showSkillJump && (
-        <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-xs flex items-center justify-center z-50 animate-fadeIn font-sans">
+        <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-xs flex items-center justify-center z-50 animate-fadeIn font-workspace">
           <style dangerouslySetInnerHTML={{
             __html: `
             @keyframes robotJump {

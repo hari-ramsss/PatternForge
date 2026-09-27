@@ -18,7 +18,7 @@ export default function SolutionPathAnalyzer({
 }: SolutionPathAnalyzerProps) {
   if (!code || !code.trim()) {
     return (
-      <div className="p-6 bg-stone-900/60 border border-stone-850 rounded-2xl text-center text-stone-500 font-sans text-xs">
+      <div className="p-6 bg-stone-900/60 border border-stone-850 rounded-2xl text-center text-stone-500 font-workspace text-xs">
         <Activity className="w-8 h-8 mx-auto mb-2 text-stone-600 animate-pulse" />
         <p>Write or run your solution code to analyze Big-O efficiency curves & allocation invariants.</p>
       </div>
@@ -49,12 +49,12 @@ export default function SolutionPathAnalyzer({
   }
 
   return (
-    <div className="bg-[#141413] border border-stone-800 rounded-2xl p-5 text-stone-200 font-sans space-y-5 shadow-sm">
+    <div className="bg-[#141413] border border-stone-800 rounded-2xl p-5 text-stone-200 font-workspace space-y-5 shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-stone-850 pb-3">
         <div className="flex items-center gap-2">
           <Cpu className="w-5 h-5 text-amber-500 animate-pulse" />
-          <h4 className="font-serif text-sm font-bold text-stone-100">Solution Path Analyzer</h4>
+          <h4 className="font-workspace text-sm font-bold text-stone-100">Solution Path Analyzer</h4>
         </div>
         <span className="text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded">
           Static AST Analysis
