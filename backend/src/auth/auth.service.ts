@@ -34,6 +34,7 @@ export class AuthService {
             targetCompanies,
             preferredLanguage,
             daysToInterview,
+            onboarded: true,
           },
         },
       },

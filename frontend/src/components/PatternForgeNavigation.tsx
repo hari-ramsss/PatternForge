@@ -74,7 +74,7 @@ export default function PatternForgeNavigation({ userName = 'Pattern learner', s
               const Icon = item.icon;
               const isActive = pathname === item.path;
               return (
-                <button key={item.id} type="button" onClick={() => navigate(item.path)} aria-current={isActive ? 'page' : undefined} className={`relative z-10 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-xs font-extrabold uppercase tracking-wide transition-colors ${isActive ? 'text-[#9b5416]' : 'text-slate-500 hover:text-slate-800'}`}>
+                <button key={item.id} type="button" data-tour={`nav-${item.id}`} onClick={() => navigate(item.path)} aria-current={isActive ? 'page' : undefined} className={`relative z-10 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-xs font-extrabold uppercase tracking-wide transition-colors ${isActive ? 'text-[#9b5416]' : 'text-slate-500 hover:text-slate-800'}`}>
                   {isActive && <motion.span layoutId="activeNavPill" className="absolute inset-0 -z-10 rounded-2xl border-2 border-b-4 border-[#f0cd7a] bg-[#fff0c9]" transition={{ type: 'spring', stiffness: 450, damping: 32 }} />}
                   <Icon className={`h-4 w-4 ${isActive ? 'text-[#e67b1f]' : 'text-slate-400'}`} />
                   <span>{item.label}</span>
@@ -84,7 +84,7 @@ export default function PatternForgeNavigation({ userName = 'Pattern learner', s
           </nav>
         </div>
         <div className="space-y-3.5">
-          <div className="space-y-3 rounded-3xl border-2 border-b-4 border-[#e8e1d3] bg-white p-4">
+          <div data-tour="streak-card" className="space-y-3 rounded-3xl border-2 border-b-4 border-[#e8e1d3] bg-white p-4">
             <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wide text-slate-700"><span className="flex items-center gap-2"><Flame className="h-4 w-4 fill-amber-500 text-amber-500" />{streak?.currentStreak ?? 0} Day Streak</span><span className={`rounded-full border-2 px-2 py-0.5 font-mono text-[10px] font-bold ${streak?.solvedToday ? 'border-[#f6d89b] bg-[#fff1d5] text-[#c56a17]' : 'border-[#e8e1d3] bg-[#f8f5ed] text-slate-400'}`}>{streak?.solvedToday ? 'Active' : 'Solve one today'}</span></div>
             <div className="flex items-center justify-between border-t-2 border-[#eee7da] pt-2.5 text-xs text-slate-500"><span>{statusLabel}</span><span className="text-sm font-black text-[#d97717]">{totalXp !== undefined ? `${totalXp} XP` : statusValue}</span></div>
           </div>

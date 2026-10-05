@@ -16,6 +16,34 @@ import {
   Zap,
 } from 'lucide-react';
 import PatternForgeNavigation from '../../components/PatternForgeNavigation';
+import TourOverlay, { TourStep } from '../../components/onboarding/TourOverlay';
+
+const LIBRARY_TOUR_KEY = 'pf-tour-library-v1';
+
+const LIBRARY_TOUR_STEPS: TourStep[] = [
+  {
+    title: 'Pattern Library',
+    body: "This is your long-term memory. Every pattern you meet on the journey can live here as a flashcard, reviewed just before you'd forget it (spaced repetition).",
+  },
+  {
+    target: '[data-tour="lib-stats"]',
+    title: 'Your memory at a glance',
+    body: 'Cards due today need review now — clearing them is the single best way to keep patterns sharp. Mastered cards come back rarely, on purpose.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="lib-filters"]',
+    title: 'Filter and search',
+    body: 'Jump straight to due cards, struggled cards, or search by pattern name or clue.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="lib-new-card"]',
+    title: 'Write your own cards',
+    body: 'After solving a problem, capture the pattern name, the clues that give it away, and the invariants — future-you will thank you at review time.',
+    placement: 'bottom',
+  },
+];
 
 interface PatternCard {
   id: string;
@@ -180,12 +208,12 @@ export default function PatternLibraryPage() {
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden pt-16 lg:pt-0">
           <header className="flex shrink-0 items-center justify-between border-b-2 border-[#e8e1d3] bg-[#fffdf8]/90 px-5 py-4 backdrop-blur-xl sm:px-8">
             <div><h1 className="flex items-center gap-2 text-lg font-black tracking-tight text-[#17263a]"><BookOpen className="h-5 w-5 text-[#e67b1f]" />Pattern Library</h1><p className="text-xs font-medium text-slate-400">Build durable recall for the patterns you are learning</p></div>
-            <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-1.5 rounded-2xl border-2 border-b-4 border-amber-600/70 bg-gradient-to-r from-amber-500 to-amber-400 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-950 transition-all active:translate-y-[2px] active:border-b-2"><Plus className="h-4 w-4" /><span className="hidden sm:inline">New Pattern Card</span></button>
+            <button data-tour="lib-new-card" onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-1.5 rounded-2xl border-2 border-b-4 border-amber-600/70 bg-gradient-to-r from-amber-500 to-amber-400 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-950 transition-all active:translate-y-[2px] active:border-b-2"><Plus className="h-4 w-4" /><span className="hidden sm:inline">New Pattern Card</span></button>
           </header>
 
           <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-16 pt-5 sm:px-8 sm:pt-7">
             {/* Banner Summary Header */}
-            <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-6 rounded-3xl border-2 border-b-4 border-[#e8e1d3] bg-[#fffdf8] p-5 md:flex-row">
+            <div data-tour="lib-stats" className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-6 rounded-3xl border-2 border-b-4 border-[#e8e1d3] bg-[#fffdf8] p-5 md:flex-row">
               <div className="space-y-1 text-center md:text-left">
                 <h1 className="text-xl font-black tracking-tight text-[#17263a]">Spaced Repetition Memory Board</h1>
                 <p className="max-w-xl text-xs leading-relaxed text-slate-500">
@@ -212,7 +240,7 @@ export default function PatternLibraryPage() {
             </div>
 
             {/* Filter & Search Bar */}
-            <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
+            <div data-tour="lib-filters" className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
               {/* Filter Pills */}
               <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1">
                 <button

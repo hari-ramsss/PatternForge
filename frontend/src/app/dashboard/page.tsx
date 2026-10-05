@@ -22,8 +22,44 @@ import AlgorithmJourneyMap from '../../components/AlgorithmJourney/AlgorithmJour
 import { JourneyNode } from '../../components/AlgorithmJourney/JourneyNodeCard';
 import PatternForgeNavigation from '../../components/PatternForgeNavigation';
 import GlobalProblemSearch from '../../components/GlobalProblemSearch';
+import TourOverlay, { TourStep } from '../../components/onboarding/TourOverlay';
+import Tooltip from '../../components/ui/Tooltip';
+import { CircleHelp } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+const DASHBOARD_TOUR_KEY = 'pf-tour-dashboard-v1';
+
+const DASHBOARD_TOUR_STEPS: TourStep[] = [
+  {
+    title: 'Welcome to PatternForge!',
+    body: "This is your forge — a seasonal journey where you master algorithms one pattern at a time. Let's take a quick 30-second tour.",
+  },
+  {
+    target: '[data-tour="journey-world"]',
+    title: 'Your Pattern Journey',
+    body: 'Each stop on the map is a pattern — arrays, hashing, sliding window and more. Click a node to see its subtopics and problems. Nodes light up as you practice, from Unexplored all the way to Mastered.',
+    placement: 'top',
+  },
+  {
+    target: '[data-tour="global-search"]',
+    title: 'Find anything, instantly',
+    body: 'Search across every problem on the platform and jump straight into it from here.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="nav-journey"]',
+    title: 'Everything lives in the sidebar',
+    body: 'Journey (where you are), Pattern Library for browsing, OA Arena for timed mock assessments, Insights for your mistake analytics, and the AI Problem Creator.',
+    placement: 'right',
+  },
+  {
+    target: '[data-tour="streak-card"]',
+    title: 'Keep the streak alive',
+    body: 'Your streak and XP live here. Solve a problem every day to grow both — consistency is how patterns stick.',
+    placement: 'right',
+  },
+];
 
 const INITIAL_JOURNEY_NODES: JourneyNode[] = [
   // LEVEL 1: FOUNDATIONS
@@ -410,6 +446,16 @@ export default function PatternForgeHomePage() {
   const [problems, setProblems] = useState<any[]>([]);
   const [curriculum, setCurriculum] = useState<Array<{ id: string; topic: string; title: string; sortOrder: number; canonicalSlug?: string | null; canonicalTitle?: string | null }>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [tourOpen, setTourOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem(DASHBOARD_TOUR_KEY)) setTourOpen(true);
+    } catch {
+      /* ignore storage failures */
+    }
+  }, []);
+
 
   // Deletion modal state
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
@@ -425,24 +471,6 @@ export default function PatternForgeHomePage() {
     if (storedEmail) {
       setEmail(storedEmail);
     }
-
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch(`${API_URL}/assessment/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (!data.onboarded) {
-            router.push('/assessment');
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch profile:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
     const fetchProblems = async () => {
       try {
@@ -470,7 +498,7 @@ export default function PatternForgeHomePage() {
       }
     };
 
-    fetchProfile();
+    setIsLoading(false);
     fetchProblems();
     fetchCurriculum();
   }, [router]);
@@ -566,6 +594,16 @@ export default function PatternForgeHomePage() {
           </div>
 
           <GlobalProblemSearch />
+          <Tooltip label="Replay the feature tour" side="bottom">
+            <button
+              type="button"
+              onClick={() => setTourOpen(true)}
+              aria-label="Replay feature tour"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border-2 border-b-4 border-[#e8e1d3] bg-white text-[#e67b1f] transition hover:border-[#d9cba8] active:translate-y-[2px] active:border-b-2"
+            >
+              <CircleHelp className="h-5 w-5" />
+            </button>
+          </Tooltip>
         </header>
 
         {/* INTERACTIVE ALGORITHM JOURNEY MAP */}
@@ -579,6 +617,11 @@ export default function PatternForgeHomePage() {
           />
         </main>
       </div>
+
+      {/* Guided onboarding tour */}
+      {tourOpen && (
+        <TourOverlay steps={DASHBOARD_TOUR_STEPS} storageKey={DASHBOARD_TOUR_KEY} onComplete={() => setTourOpen(false)} />
+      )}
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal

@@ -13,7 +13,7 @@ interface AlgorithmJourneyMapProps { initialNodes: JourneyNode[]; existingProble
 
 export const AlgorithmJourneyMap: React.FC<AlgorithmJourneyMapProps> = ({ initialNodes, existingProblems, curriculum = [], onStartPractice, onGenerateAiProblem }) => {
   const [nodes, setNodes] = useState<JourneyNode[]>(initialNodes);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>('sliding-window');
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
 

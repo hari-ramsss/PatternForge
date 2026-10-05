@@ -112,7 +112,7 @@ export default function GlobalProblemSearch() {
   };
 
   return (
-    <div ref={containerRef} className="relative w-full lg:w-80">
+    <div ref={containerRef} data-tour="global-search" className="relative w-full lg:w-80">
       <div className="relative">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input

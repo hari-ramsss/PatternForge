@@ -12,8 +12,47 @@ import SolutionPathAnalyzer from '../../../features/workspace/components/Solutio
 import VocalTranscriptDrawer from '../../../features/workspace/components/VocalTranscriptDrawer';
 import AiVoiceInterviewer from '../../../features/workspace/components/AiVoiceInterviewer';
 import DeleteConfirmationModal from '../../../features/workspace/components/DeleteConfirmationModal';
+import TourOverlay, { TourStep } from '../../../components/onboarding/TourOverlay';
+import Tooltip from '../../../components/ui/Tooltip';
 import { createDiagramDefinition, type DiagramDefinition } from '../../../features/workspace/diagram-utils';
 import { Play, Send, ChevronDown, CheckCircle, AlertTriangle, Cpu, Clock, RefreshCw, Sparkles, BookOpen, BrainCircuit, Activity, Unlock, Lock, Plus, Trash2, Code2, Award, Mic, Bot, Timer, Flame } from 'lucide-react';
+
+const WORKSPACE_TOUR_KEY = 'pf-tour-workspace-v1';
+
+const WORKSPACE_TOUR_STEPS: TourStep[] = [
+  {
+    title: 'This is your Workspace',
+    body: 'Every problem opens as a guided session. Quick tour of the tools you have here — 30 seconds, promise.',
+  },
+  {
+    target: '[data-tour="ws-wizard"]',
+    title: 'The Thinking Loop',
+    body: 'Before any code, you read the problem (timed) and design your approach — target complexity, pseudocode, reasoning. The AI grades each step. This loop is how patterns actually stick, but you can always bypass it if you just want to code.',
+    placement: 'left',
+  },
+  {
+    target: '[data-tour="ws-coach"]',
+    title: 'AI Coding Coach',
+    body: 'Stuck? Switch to this tab — the coach gives Socratic hints and reviews your code without spoiling the solution.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="ws-run"]',
+    title: 'Run Code',
+    body: 'Runs your code against the visible test cases. No penalty — use it as often as you like.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="ws-submit"]',
+    title: 'Submit Solution',
+    body: 'Runs the full hidden test suite, records your submission and updates your mastery on the journey map. Submit when you feel confident.',
+    placement: 'bottom',
+  },
+  {
+    title: 'Ready to forge!',
+    body: 'The code editor unlocks once your approach is approved (or you bypass the wizard). Run freely, submit when sure. Good luck!',
+  },
+];
 
 interface Example {
   id: string;
@@ -248,6 +287,19 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
   const params = use(paramsPromise);
   const sessionId = params.sessionId;
   const router = useRouter();
+  const [tourOpen, setTourOpen] = useState(false);
+
+  useEffect(() => {
+    // Small delay so layout, gates and data have settled before spotlighting.
+    const timer = setTimeout(() => {
+      try {
+        if (!localStorage.getItem(WORKSPACE_TOUR_KEY)) setTourOpen(true);
+      } catch {
+        /* ignore storage failures */
+      }
+    }, 900);
+    return () => clearTimeout(timer);
+  }, []);
   const searchParams = useSearchParams();
   const isOaMode = searchParams.get('oa') === 'true';
   const oaCompany = searchParams.get('company') || 'Corporate Assessment';
@@ -1166,14 +1218,16 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                   <ChevronDown className="h-4 w-4 shrink-0 text-stone-450" />
                 </button>
 
-                <button
-                  hidden={isOaMode}
-                  onClick={() => setShowDeleteModal(true)}
-                  className="rounded-lg p-1.5 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
-                  title="Delete Problem from Database"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <Tooltip label="Delete this problem from the database">
+                  <button
+                    hidden={isOaMode}
+                    onClick={() => setShowDeleteModal(true)}
+                    className="rounded-lg p-1.5 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
+                    title="Delete Problem from Database"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </Tooltip>
               </div>
 
               {searchDropdownOpen && (
@@ -1224,6 +1278,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
             <button
               onClick={handleRun}
               disabled={isCompiling}
+              data-tour="ws-run"
               className="flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-[#e3d8c8] bg-white px-3 py-2 text-xs font-bold text-[#17263a] transition active:translate-y-[2px]"
             >
               <Play className="w-3.5 h-3.5 fill-current" /> Run Code
@@ -1231,6 +1286,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
             {!isOaMode && <button
               onClick={handleSubmit}
               disabled={isCompiling}
+              data-tour="ws-submit"
               className="flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-amber-600 bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-2 text-xs font-bold text-slate-950 shadow-sm transition active:translate-y-[2px]"
             >
               <Send className="w-3.5 h-3.5" /> Submit Solution
@@ -1329,6 +1385,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
             </button>
             {!isOaMode && <button
               onClick={() => setLeftTab('coach')}
+              data-tour="ws-coach"
               className={`py-3 px-1 border-b-2 transition flex items-center gap-1.5 ${leftTab === 'coach'
                 ? 'border-amber-700 text-amber-800 font-bold'
                 : 'border-transparent hover:text-stone-700'
@@ -1581,7 +1638,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
             currentPhase !== 'COMPLETED' ? (
 
             /* Thinking Loop Wizard UI */
-            <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col justify-between bg-[#131312] text-stone-200">
+            <div data-tour="ws-wizard" className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col justify-between bg-[#131312] text-stone-200">
               <div className="space-y-6">
 
                 {/* Wizard Header Progress Bar */}
@@ -1894,13 +1951,15 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                       </select>
                     </div>
                   </div>
-                  <button
-                    onClick={handleResetCode}
-                    title="Reset to default template"
-                    className="flex items-center justify-center rounded-lg p-1 text-slate-300 transition hover:bg-[#28425f] hover:text-white"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  </button>
+                  <Tooltip label="Reset to the default template">
+                    <button
+                      onClick={handleResetCode}
+                      title="Reset to default template"
+                      className="flex items-center justify-center rounded-lg p-1 text-slate-300 transition hover:bg-[#28425f] hover:text-white"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    </button>
+                  </Tooltip>
 
                   <button
                     onClick={handleFormatCode}
@@ -2552,6 +2611,11 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
           }
         }}
       />
+
+      {/* Guided workspace tour */}
+      {tourOpen && (
+        <TourOverlay steps={WORKSPACE_TOUR_STEPS} storageKey={WORKSPACE_TOUR_KEY} onComplete={() => setTourOpen(false)} />
+      )}
     </div>
   );
 }
