@@ -78,7 +78,8 @@ export default function AssessmentPage() {
     // Save onboarding metadata to backend
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:4000/api/auth/register', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+      const res = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST', // Actually we can patch user profile but registration register endpoint or a new profile updates endpoint is clean. Let's patch directly if token exists. Wait, let's submit it to the submit-quiz endpoint so it saves all together!
         headers: {
           'Content-Type': 'application/json',
@@ -137,8 +138,9 @@ export default function AssessmentPage() {
 
     try {
       const token = localStorage.getItem('token');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
       // Submit results to backend API
-      const res = await fetch('http://localhost:4000/api/assessment/submit-quiz', {
+      const res = await fetch(`${apiUrl}/assessment/submit-quiz`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

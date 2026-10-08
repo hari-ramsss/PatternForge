@@ -12,10 +12,16 @@ import { JwtStrategy } from './jwt.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'jwt_super_secure_secret_key',
-        signOptions: { expiresIn: '7d' },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>('JWT_SECRET') || process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'jwt_super_secure_secret_key');
+        if (!secret) {
+          throw new Error('FATAL: JWT_SECRET environment variable is missing!');
+        }
+        return {
+          secret,
+          signOptions: { expiresIn: '7d' },
+        };
+      },
     }),
   ],
   providers: [AuthService, JwtStrategy],

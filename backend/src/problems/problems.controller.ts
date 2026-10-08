@@ -41,7 +41,7 @@ export class ProblemsController {
     @Body('pattern') pattern?: string,
     @Body('subtopic') subtopic?: string,
   ) {
-    return this.problemsService.createProblemWithAi(prompt, pattern, subtopic);
+    return this.problemsService.createProblemWithAi(req.user.id, prompt, pattern, subtopic);
   }
 
   @Get(':id')
@@ -85,8 +85,19 @@ export class ProblemsController {
     return this.problemsService.saveVisualDiagram(id, body);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async deleteOne(@Param('id') id: string) {
-    return this.problemsService.deleteProblem(id);
+  async deleteOne(@Request() req, @Param('id') id: string) {
+    return this.problemsService.deleteProblem(req.user.id, id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/regenerate')
+  async regenerateOne(
+    @Request() req,
+    @Param('id') id: string,
+    @Body('prompt') prompt: string,
+  ) {
+    return this.problemsService.regenerateProblem(req.user.id, id, prompt);
   }
 }

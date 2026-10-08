@@ -11,7 +11,6 @@ import MonacoWrapper from '../../../features/workspace/components/monaco-wrapper
 import SolutionPathAnalyzer from '../../../features/workspace/components/SolutionPathAnalyzer';
 import VocalTranscriptDrawer from '../../../features/workspace/components/VocalTranscriptDrawer';
 import AiVoiceInterviewer from '../../../features/workspace/components/AiVoiceInterviewer';
-import DeleteConfirmationModal from '../../../features/workspace/components/DeleteConfirmationModal';
 import TourOverlay, { TourStep } from '../../../components/onboarding/TourOverlay';
 import Tooltip from '../../../components/ui/Tooltip';
 import { createDiagramDefinition, type DiagramDefinition } from '../../../features/workspace/diagram-utils';
@@ -520,8 +519,6 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
   const [vocalTranscript, setVocalTranscript] = useState('');
   const [isEvaluatingOa, setIsEvaluatingOa] = useState(false);
   const [showVoiceInterview, setShowVoiceInterview] = useState(oaVoiceEnabled);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isDeletingProblem, setIsDeletingProblem] = useState(false);
   const [selectedExampleId, setSelectedExampleId] = useState<string | null>(null);
   const [activeDiagram, setActiveDiagram] = useState<DiagramDefinition | null>(null);
   const [savedDiagrams, setSavedDiagrams] = useState<SavedDiagram[]>([]);
@@ -757,10 +754,6 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
   const [isEvaluatingApproach, setIsEvaluatingApproach] = useState(false);
   const [approachFeedback, setApproachFeedback] = useState('');
   const [approachScoring, setApproachScoring] = useState<any>(null);
-  const [isFetchingHelp, setIsFetchingHelp] = useState(false);
-  const [helpHint, setHelpHint] = useState('');
-  const [codeReview, setCodeReview] = useState<any>(null);
-  const [isFetchingReview, setIsFetchingReview] = useState(false);
 
   // Reading Phase countdown effect
   useEffect(() => {
@@ -867,7 +860,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
     }
   };
 
-  const [leftTab, setLeftTab] = useState<'problem' | 'analytics' | 'coach'>('problem');
+  const [leftTab, setLeftTab] = useState<'problem' | 'coach'>('problem');
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'coach'; content: string }>>([
     { role: 'coach', content: "Hello! I am your Socratic Coding Coach. What questions do you have about the problem or approach? Let's build the solution step-by-step!" }
   ]);
@@ -985,10 +978,6 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
       eventSource.onmessage = (event) => {
         const payload = JSON.parse(event.data);
         setVerdict(payload);
-
-        if (payload.analysis) {
-          setLeftTab('analytics');
-        }
 
         if (
           payload.status !== 'PENDING' &&
@@ -1131,35 +1120,6 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
     }
   };
 
-  const submitCodeEvaluation = async (status: string, errors: string) => {
-    setCodeReview(null);
-    setIsFetchingReview(true);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${apiUrl}/assessment/evaluate-code`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          problemId: problem?.id || problemId,
-          code,
-          language,
-          status,
-          errors,
-        }),
-      });
-      const data = await res.json();
-      setIsFetchingReview(false);
-      if (res.ok) {
-        setCodeReview(data);
-      }
-    } catch (err: any) {
-      setIsFetchingReview(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#FAF8F5] text-stone-600 font-workspace">
@@ -1218,16 +1178,6 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                   <ChevronDown className="h-4 w-4 shrink-0 text-stone-450" />
                 </button>
 
-                <Tooltip label="Delete this problem from the database">
-                  <button
-                    hidden={isOaMode}
-                    onClick={() => setShowDeleteModal(true)}
-                    className="rounded-lg p-1.5 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
-                    title="Delete Problem from Database"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </Tooltip>
               </div>
 
               {searchDropdownOpen && (
@@ -2586,31 +2536,6 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
       )}
 
       {/* AI Coach Hint Modal removed - integrated directly into AI Coding Coach panel chat */}
-
-      {/* Custom Deletion Confirmation Popup Modal */}
-      <DeleteConfirmationModal
-        isOpen={showDeleteModal}
-        problemTitle={problem?.title || ''}
-        isDeleting={isDeletingProblem}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={async () => {
-          if (!problem?.id) return;
-          setIsDeletingProblem(true);
-          try {
-            const token = localStorage.getItem('token');
-            await fetch(`${apiUrl}/problems/${encodeURIComponent(problem.id)}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            router.push('/dashboard');
-          } catch (err) {
-            console.error('Failed to delete problem:', err);
-          } finally {
-            setIsDeletingProblem(false);
-            setShowDeleteModal(false);
-          }
-        }}
-      />
 
       {/* Guided workspace tour */}
       {tourOpen && (

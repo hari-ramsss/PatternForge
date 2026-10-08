@@ -36,17 +36,6 @@ export class AssessmentController {
     return this.assessmentService.evaluatePattern(req.user.id, problemId, selectedPattern, justification);
   }
 
-  @Post('evaluate-observations')
-  async evaluateObservations(
-    @Request() req,
-    @Body('problemId') problemId: string,
-    @Body('constraints') constraints: string,
-    @Body('edgeCases') edgeCases: string,
-    @Body('invariants') invariants: string,
-  ) {
-    return this.assessmentService.evaluateObservations(req.user.id, problemId, constraints, edgeCases, invariants);
-  }
-
   @Post('evaluate-approach')
   async evaluateApproach(
     @Request() req,
@@ -62,28 +51,6 @@ export class AssessmentController {
       spaceComplexity,
       pseudocode
     );
-  }
-
-  @Post('code-help')
-  async getCodeHelp(
-    @Request() req,
-    @Body('problemId') problemId: string,
-    @Body('code') code: string,
-    @Body('language') language: string,
-  ) {
-    return this.assessmentService.getCodeHelp(req.user.id, problemId, code, language);
-  }
-
-  @Post('evaluate-code')
-  async evaluateCode(
-    @Request() req,
-    @Body('problemId') problemId: string,
-    @Body('code') code: string,
-    @Body('language') language: string,
-    @Body('status') status: string,
-    @Body('errors') errors: string,
-  ) {
-    return this.assessmentService.evaluateCode(req.user.id, problemId, code, language, status, errors);
   }
 
   @Post('coach-chat')

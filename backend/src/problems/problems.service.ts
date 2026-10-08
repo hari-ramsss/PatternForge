@@ -246,7 +246,7 @@ export class ProblemsService {
       .replace(/&le;/g, '≤');
   }
 
-  async createProblemWithAi(prompt: string, pattern?: string, subtopic?: string) {
+  async createProblemWithAi(userId: string, prompt: string, pattern?: string, subtopic?: string) {
     const curriculum = pattern && subtopic
       ? await this.prisma.curriculumSubtopic.findFirst({
         where: { topic: { equals: pattern, mode: 'insensitive' }, title: { equals: subtopic, mode: 'insensitive' } },
@@ -295,6 +295,7 @@ ${curriculum?.canonicalTitle ? `- Canonical reference problem for this skill: ${
         optimalTime: data.optimalTime || 'O(N)',
         optimalSpace: data.optimalSpace || 'O(1)',
         source: (pattern && subtopic) ? 'journey' : 'creator',
+        createdById: (pattern && subtopic) ? null : userId,
       }
     });
 
@@ -377,39 +378,60 @@ ${curriculum?.canonicalTitle ? `- Canonical reference problem for this skill: ${
     };
   }
 
-  async deleteProblem(id: string) {
-    // Find problem by id, titleSlug, or title
-    const problem = await this.prisma.problem.findFirst({
+  async deleteProblem(userId: string, id: string) {
+    // Creator problems are user-owned; legacy records without an owner remain protected.
+    const problem = await this.findOwnedCreatorProblem(userId, id);
+
+    if (!problem) throw new NotFoundException('Creator problem not found');
+
+    await this.deleteOwnedCreatorProblem(problem.id);
+
+    return { success: true, deletedId: problem.id };
+  }
+
+  async regenerateProblem(userId: string, id: string, prompt: string) {
+    const problem = await this.findOwnedCreatorProblem(userId, id);
+    if (!problem) throw new NotFoundException('Creator problem not found');
+    if (!prompt?.trim()) throw new BadRequestException('A prompt is required to regenerate the problem');
+
+    // Generate first so a provider failure leaves the existing problem intact.
+    const replacement = await this.createProblemWithAi(userId, prompt);
+    await this.deleteOwnedCreatorProblem(problem.id);
+    return replacement;
+  }
+
+  private async findOwnedCreatorProblem(userId: string, id: string) {
+    const directMatch = await this.prisma.problem.findFirst({
       where: {
+        source: 'creator',
+        createdById: userId,
         OR: [
-          { id: id },
+          { id },
           { title: { equals: id, mode: 'insensitive' } },
-          { title: { contains: id, mode: 'insensitive' } }
-        ]
-      }
+        ],
+      },
     });
+    if (directMatch) return directMatch;
 
-    if (!problem) {
-      return { success: false, message: 'Problem not found' };
-    }
-
-    const realId = problem.id;
-
-    // Delete dependent relations first
-    await this.prisma.testCase.deleteMany({ where: { problemId: realId } });
-    await this.prisma.starterCode.deleteMany({ where: { problemId: realId } });
-    await this.prisma.problemExample.deleteMany({ where: { problemId: realId } });
-    await this.prisma.problemConstraint.deleteMany({ where: { problemId: realId } });
-    await this.prisma.codeDraft.deleteMany({ where: { problemId: realId } });
-    await this.prisma.submission.deleteMany({ where: { problemId: realId } });
-    await this.prisma.learningSession.deleteMany({ where: { problemId: realId } });
-
-    // Delete problem
-    await this.prisma.problem.delete({
-      where: { id: realId }
+    const ownedProblems = await this.prisma.problem.findMany({
+      where: { source: 'creator', createdById: userId },
     });
+    const requestedSlug = this.toProblemSlug(id);
+    return ownedProblems.find((candidate) => this.toProblemSlug(candidate.title) === requestedSlug) ?? null;
+  }
 
-    return { success: true, deletedId: realId };
+  private async deleteOwnedCreatorProblem(realId: string) {
+
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.testCase.deleteMany({ where: { problemId: realId } });
+      await transaction.starterCode.deleteMany({ where: { problemId: realId } });
+      await transaction.problemExample.deleteMany({ where: { problemId: realId } });
+      await transaction.problemConstraint.deleteMany({ where: { problemId: realId } });
+      await transaction.codeDraft.deleteMany({ where: { problemId: realId } });
+      await transaction.submission.deleteMany({ where: { problemId: realId } });
+      await transaction.learningSession.deleteMany({ where: { problemId: realId } });
+      await transaction.problem.delete({ where: { id: realId } });
+    });
   }
 }
 

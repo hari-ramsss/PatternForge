@@ -8,11 +8,19 @@ out/
 # NestJS build output
 dist/
 
-# Env files
-.env
-.env.local
-.env.production
-.env.*.local
+# Environment files: keep safe example templates trackable
+.env*
+!.env.example
+
+# Vercel project metadata and generated TypeScript build info
+.vercel/
+*.tsbuildinfo
+
+# Private keys and certificate bundles
+*.pem
+*.key
+*.p12
+*.pfx
 
 # IDEs
 .vscode/

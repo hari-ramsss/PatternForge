@@ -6,9 +6,9 @@ services:
     container_name: patternforge-postgres
     environment:
       POSTGRES_DB: patternforge_db
-      POSTGRES_PASSWORD: postgres_secure_pass
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD is required}"
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
@@ -18,24 +18,47 @@ services:
     image: redis:7-alpine
     container_name: patternforge-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redisdata:/data
-    command: redis-server --requirepass redis_secure_pass
+    command: "redis-server --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD is required}"
     restart: always
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: patternforge-backend
+    restart: always
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD is required}@postgres:5432/patternforge_db?schema=public"
+      REDIS_URL: "redis://:${REDIS_PASSWORD:?Error: REDIS_PASSWORD is required}@redis:6379"
+      JUDGE0_URL: "http://judge0-server:2358"
+      JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET is required}"
+      GROQ_API_KEY: "${GROQ_API_KEY:-}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      FRONTEND_URL: "${FRONTEND_URL:-}"
+    ports:
+      - "127.0.0.1:4000:4000"
+    depends_on:
+      - postgres
+      - redis
+      - judge0-server
 
   judge0-server:
     image: judge0/judge0:latest
     container_name: patternforge-judge0-server
     ports:
-      - "8000:2358"
+      - "127.0.0.1:8000:2358"
     environment:
       - REDIS_HOST=judge0-redis
       - REDIS_PORT=6379
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres_secure_pass
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD is required}"
       - POSTGRES_DB=judge0_db
     privileged: true
     restart: always
@@ -53,7 +76,7 @@ services:
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres_secure_pass
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD is required}"
       - POSTGRES_DB=judge0_db
     privileged: true
     restart: always
@@ -69,3 +92,6 @@ services:
 volumes:
   pgdata:
   redisdata:
+
+
+

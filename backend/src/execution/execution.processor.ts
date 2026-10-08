@@ -261,19 +261,6 @@ export class ExecutionProcessor extends WorkerHost {
         };
       });
 
-      let analysis: any = null;
-      if (isSubmit && finalStatus === 'ACCEPTED') {
-        try {
-          analysis = await this.aiOrchestrator.analyzeSubmissionCode(
-            submission.problem,
-            submission.code,
-            submission.language
-          );
-        } catch (err) {
-          console.error('Failed to run AI performance analysis:', err.message);
-        }
-      }
-
       this.executionService.eventEmitter.emit(`status:${submissionId}`, {
         status: finalStatus,
         runtime: maxRuntime,
@@ -281,7 +268,6 @@ export class ExecutionProcessor extends WorkerHost {
         stdout: finalStdout || (results[results.length - 1]?.stdout ?? null),
         stderr: finalStderr || null,
         testCases: testCasesResults,
-        analysis,
       });
 
     } catch (err) {

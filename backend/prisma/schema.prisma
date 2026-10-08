@@ -38,6 +38,7 @@ model User {
   drafts        CodeDraft[]
   submissions   Submission[]
   patternCards  PatternCard[]
+  createdProblems Problem[]        @relation("CreatedProblems")
 
   @@map("users")
 }
@@ -76,7 +77,9 @@ model Problem {
   optimalTime    String              // e.g. "O(N)"
   optimalSpace   String              // e.g. "O(1)"
   source         String              @default("seeded") // seeded | creator (interview) | journey
+  createdById    String?
   createdAt      DateTime            @default(now())
+  createdBy      User?               @relation("CreatedProblems", fields: [createdById], references: [id], onDelete: SetNull)
   examples       ProblemExample[]
   visualDiagrams ProblemVisualDiagram[]
   constraints    ProblemConstraint[]
@@ -87,6 +90,8 @@ model Problem {
   submissions    Submission[]
   canonicalForSubtopics CurriculumSubtopic[] @relation("CanonicalProblem")
   curriculumAssignments CurriculumProblemAssignment[]
+
+  @@index([createdById, source])
 
   @@map("problems")
 }

@@ -179,38 +179,6 @@ export class AssessmentService implements OnModuleInit {
     }
   }
 
-  async evaluateObservations(userId: string, problemId: string, constraints: string, edgeCases: string, invariants: string) {
-    const problem = await this.resolveProblem(problemId);
-    if (!problem) {
-      throw new NotFoundException('Problem not found');
-    }
-
-    if (
-      !constraints || constraints.trim().length < 15 ||
-      !edgeCases || edgeCases.trim().length < 15 ||
-      !invariants || invariants.trim().length < 15
-    ) {
-      return {
-        success: false,
-        feedback: 'Please fill out all observation textareas with at least 15 characters.',
-      };
-    }
-
-    const result = await this.aiOrchestrator.evaluateObservations(problem, constraints, edgeCases, invariants);
-
-    if (result.success) {
-      // Reward profile observation score slightly
-      await this.prisma.userProfile.update({
-        where: { userId },
-        data: {
-          scoreObservation: { increment: 3 }
-        }
-      }).catch(() => { });
-    }
-
-    return result;
-  }
-
   async evaluateApproach(
     userId: string,
     problemId: string,
@@ -238,44 +206,6 @@ export class AssessmentService implements OnModuleInit {
     );
 
     return result;
-  }
-
-  async getCodeHelp(userId: string, problemId: string, code: string, language: string) {
-    const problem = await this.resolveProblem(problemId);
-    if (!problem) {
-      throw new NotFoundException('Problem not found');
-    }
-    return this.aiOrchestrator.getCodeHelp(problem, code, language);
-  }
-
-  async evaluateCode(
-    userId: string,
-    problemId: string,
-    code: string,
-    language: string,
-    status: string,
-    errors: string
-  ) {
-    const problem = await this.resolveProblem(problemId);
-    if (!problem) {
-      throw new NotFoundException('Problem not found');
-    }
-
-    const review = await this.aiOrchestrator.evaluateCode(problem, code, language, status, errors);
-
-    if (review.passed && status === 'ACCEPTED') {
-      // Reward user profile analytics for a fully correct implementation!
-      await this.prisma.userProfile.update({
-        where: { userId },
-        data: {
-          scoreConsistency: { increment: 3 },
-          scoreOptimization: { increment: 3 },
-          scorePattern: { increment: 3 }
-        }
-      }).catch(() => { });
-    }
-
-    return review;
   }
 
   async getCoachChatResponse(

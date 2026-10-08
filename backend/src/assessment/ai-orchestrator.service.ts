@@ -7,28 +7,6 @@ export interface ObservationRubric {
   relevantPatternSignals: string[];
 }
 
-export interface EvaluationInput {
-  problemTitle: string;
-  problemDescription: string;
-  constraints: string;
-  edgeCases: string;
-  invariants: string;
-  rubric: ObservationRubric;
-}
-
-export interface EvaluationResult {
-  passed: boolean;
-  scores: {
-    completeness: number;
-    relevance: number;
-    depth: number;
-  };
-  confidence: number;
-  feedback: string;
-  strengths: string[];
-  missingObservations: string[];
-}
-
 export interface ApproachInput {
   problemTitle: string;
   problemDescription: string;
@@ -53,63 +31,16 @@ export interface ApproachEvaluationResult {
   } | null;
 }
 
-export interface CodeHelpInput {
-  problemTitle: string;
-  problemDescription: string;
-  code: string;
-  language: string;
-}
-
-export interface CodeHelpResult {
-  hint: string;
-  suggestedPatternRef: string;
-}
-
-export interface CodeReviewInput {
-  problemTitle: string;
-  problemDescription: string;
-  code: string;
-  language: string;
-  status: string;
-  errors: string;
-}
-
-export interface CodeReviewResult {
-  passed: boolean;
-  observations: string;
-  optimizationsPossible: string;
-  debuggingAdvice: string | null;
-  scores: {
-    efficiency: number;
-    readability: number;
-  };
-}
-
 export interface GeneratedTestCase {
   input: string;
   expected: string;
 }
 
-export interface AIAnalysisResult {
-  timeComplexity: string;
-  spaceComplexity: string;
-  method: string;
-  feedback: string;
-  bruteForceComplexity: string;
-  bruteForceTimeMs: number;
-  optimalComplexity: string;
-  optimalTimeMs: number;
-}
-
 export interface AIProvider {
   name: string;
   isConfigured(): boolean;
-  evaluateObservation(input: EvaluationInput, signal?: AbortSignal): Promise<EvaluationResult>;
   evaluateApproach(input: ApproachInput, signal?: AbortSignal): Promise<ApproachEvaluationResult>;
-  getCodeHelp(input: CodeHelpInput, signal?: AbortSignal): Promise<CodeHelpResult>;
-  evaluateCode(input: CodeReviewInput, signal?: AbortSignal): Promise<CodeReviewResult>;
   generateEdgeCases(problem: any, signal?: AbortSignal): Promise<GeneratedTestCase[]>;
-  analyzeSubmissionCode(problem: any, code: string, language: string, signal?: AbortSignal): Promise<AIAnalysisResult>;
   getCoachChatResponse(problem: any, code: string, language: string, message: string, history: any[], signal?: AbortSignal): Promise<any>;
 }
 
@@ -431,54 +362,6 @@ class GroqProvider implements AIProvider {
     return !!this.apiKey && this.apiKey.trim() !== '';
   }
 
-  async evaluateObservation(input: EvaluationInput, signal?: AbortSignal): Promise<EvaluationResult> {
-    const userPrompt = `
-Problem Title: ${input.problemTitle}
-Problem Description:
-${input.problemDescription}
-
-Problem Observation Rubric:
-- Important Constraints: ${input.rubric.importantConstraints.join(', ')}
-- Key Edge Cases: ${input.rubric.importantEdgeCases.join(', ')}
-- Logical Invariants: ${input.rubric.expectedInvariants.join(', ')}
-- Expected Patterns: ${input.rubric.relevantPatternSignals.join(', ')}
-
-Student's Stated Observations:
-- Constraints Stated: ${input.constraints}
-- Edge Cases Stated: ${input.edgeCases}
-- Invariants Stated: ${input.invariants}
-`;
-
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      signal,
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT_v1 },
-          { role: 'user', content: userPrompt }
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.1
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      const err: any = new Error(`Groq API failure: ${response.statusText}. Details: ${errText}`);
-      err.status = response.status;
-      throw err;
-    }
-
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || '';
-    return JSON.parse(text.trim());
-  }
-
   async evaluateApproach(input: ApproachInput, signal?: AbortSignal): Promise<ApproachEvaluationResult> {
     const userPrompt = `
 Problem Title: ${input.problemTitle}
@@ -504,94 +387,6 @@ ${input.pseudocode}
         model: 'openai/gpt-oss-120b',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT_APPROACH_v1 },
-          { role: 'user', content: userPrompt }
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.1
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      const err: any = new Error(`Groq API failure: ${response.statusText}. Details: ${errText}`);
-      err.status = response.status;
-      throw err;
-    }
-
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || '';
-    return JSON.parse(text.trim());
-  }
-
-  async getCodeHelp(input: CodeHelpInput, signal?: AbortSignal): Promise<CodeHelpResult> {
-    const userPrompt = `
-Problem Title: ${input.problemTitle}
-Problem Description:
-${input.problemDescription}
-
-Student's Current Code Draft (${input.language}):
-\`\`\`${input.language}
-${input.code}
-\`\`\`
-`;
-
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      signal,
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT_CODE_HELP_v1 },
-          { role: 'user', content: userPrompt }
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.1
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      const err: any = new Error(`Groq API failure: ${response.statusText}. Details: ${errText}`);
-      err.status = response.status;
-      throw err;
-    }
-
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || '';
-    return JSON.parse(text.trim());
-  }
-
-  async evaluateCode(input: CodeReviewInput, signal?: AbortSignal): Promise<CodeReviewResult> {
-    const userPrompt = `
-Problem Title: ${input.problemTitle}
-Problem Description:
-${input.problemDescription}
-
-Student's Submitted Code (${input.language}):
-\`\`\`${input.language}
-${input.code}
-\`\`\`
-
-Execution Status: ${input.status}
-Execution Errors / Failures:
-${input.errors}
-`;
-
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      signal,
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT_CODE_REVIEW_v1 },
           { role: 'user', content: userPrompt }
         ],
         response_format: { type: 'json_object' },
@@ -647,48 +442,6 @@ ${problem.description}
     const text = data.choices?.[0]?.message?.content || '';
     const parsed = JSON.parse(text.trim());
     return parsed.testCases || [];
-  }
-
-  async analyzeSubmissionCode(problem: any, code: string, language: string, signal?: AbortSignal): Promise<AIAnalysisResult> {
-    const userPrompt = `
-Problem Title: ${problem.title}
-Problem Description:
-${problem.description}
-
-User's Code (${language}):
-\`\`\`${language}
-${code}
-\`\`\`
-`;
-
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      signal,
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT_SUBMISSION_ANALYSIS_v1 },
-          { role: 'user', content: userPrompt }
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.1
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      const err: any = new Error(`Groq API failure: ${response.statusText}. Details: ${errText}`);
-      err.status = response.status;
-      throw err;
-    }
-
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || '';
-    return JSON.parse(text.trim());
   }
 
   private isPromptInjectionAttempt(text: string): boolean {
@@ -772,59 +525,6 @@ class GeminiProvider implements AIProvider {
     return !!this.apiKey && this.apiKey.trim() !== '';
   }
 
-  async evaluateObservation(input: EvaluationInput, signal?: AbortSignal): Promise<EvaluationResult> {
-    const userPrompt = `
-Problem Title: ${input.problemTitle}
-Problem Description:
-${input.problemDescription}
-
-Problem Observation Rubric:
-- Important Constraints: ${input.rubric.importantConstraints.join(', ')}
-- Key Edge Cases: ${input.rubric.importantEdgeCases.join(', ')}
-- Logical Invariants: ${input.rubric.expectedInvariants.join(', ')}
-- Expected Patterns: ${input.rubric.relevantPatternSignals.join(', ')}
-
-Student's Stated Observations:
-- Constraints Stated: ${input.constraints}
-- Edge Cases Stated: ${input.edgeCases}
-- Invariants Stated: ${input.invariants}
-`;
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${this.apiKey}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal,
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: SYSTEM_PROMPT_v1 + '\n\n' + userPrompt }
-            ]
-          }
-        ],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.1
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      const err: any = new Error(`Gemini API failure: ${response.statusText}. Details: ${errText}`);
-      err.status = response.status;
-      throw err;
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return JSON.parse(text.trim());
-  }
-
   async evaluateApproach(input: ApproachInput, signal?: AbortSignal): Promise<ApproachEvaluationResult> {
     const userPrompt = `
 Problem Title: ${input.problemTitle}
@@ -852,104 +552,6 @@ ${input.pseudocode}
             role: 'user',
             parts: [
               { text: SYSTEM_PROMPT_APPROACH_v1 + '\n\n' + userPrompt }
-            ]
-          }
-        ],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.1
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      const err: any = new Error(`Gemini API failure: ${response.statusText}. Details: ${errText}`);
-      err.status = response.status;
-      throw err;
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return JSON.parse(text.trim());
-  }
-
-  async getCodeHelp(input: CodeHelpInput, signal?: AbortSignal): Promise<CodeHelpResult> {
-    const userPrompt = `
-Problem Title: ${input.problemTitle}
-Problem Description:
-${input.problemDescription}
-
-Student's Current Code Draft (${input.language}):
-\`\`\`${input.language}
-${input.code}
-\`\`\`
-`;
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${this.apiKey}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal,
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: SYSTEM_PROMPT_CODE_HELP_v1 + '\n\n' + userPrompt }
-            ]
-          }
-        ],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.1
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      const err: any = new Error(`Gemini API failure: ${response.statusText}. Details: ${errText}`);
-      err.status = response.status;
-      throw err;
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return JSON.parse(text.trim());
-  }
-
-  async evaluateCode(input: CodeReviewInput, signal?: AbortSignal): Promise<CodeReviewResult> {
-    const userPrompt = `
-Problem Title: ${input.problemTitle}
-Problem Description:
-${input.problemDescription}
-
-Student's Submitted Code (${input.language}):
-\`\`\`${input.language}
-${input.code}
-\`\`\`
-
-Execution Status: ${input.status}
-Execution Errors / Failures:
-${input.errors}
-`;
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${this.apiKey}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal,
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: SYSTEM_PROMPT_CODE_REVIEW_v1 + '\n\n' + userPrompt }
             ]
           }
         ],
@@ -1013,53 +615,6 @@ ${problem.description}
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const parsed = JSON.parse(text.trim());
     return parsed.testCases || [];
-  }
-
-  async analyzeSubmissionCode(problem: any, code: string, language: string, signal?: AbortSignal): Promise<AIAnalysisResult> {
-    const userPrompt = `
-Problem Title: ${problem.title}
-Problem Description:
-${problem.description}
-
-User's Code (${language}):
-\`\`\`${language}
-${code}
-\`\`\`
-`;
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${this.apiKey}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal,
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: SYSTEM_PROMPT_SUBMISSION_ANALYSIS_v1 + '\n\n' + userPrompt }
-            ]
-          }
-        ],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.1
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      const err: any = new Error(`Gemini API failure: ${response.statusText}. Details: ${errText}`);
-      err.status = response.status;
-      throw err;
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return JSON.parse(text.trim());
   }
 
   async getCoachChatResponse(problem: any, code: string, language: string, message: string, history: any[], signal?: AbortSignal): Promise<any> {
@@ -1127,85 +682,6 @@ ${message}
 @Injectable()
 export class AiOrchestratorService {
   private readonly logger = new Logger(AiOrchestratorService.name);
-
-  async evaluateObservations(
-    problem: any,
-    constraints: string,
-    edgeCases: string,
-    invariants: string
-  ): Promise<any> {
-    const rubric = this.getRubric(problem.id || problem.titleSlug || '');
-
-    const groqKey = process.env.GROQ_API_KEY || '';
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-
-    const providers: AIProvider[] = [];
-
-    const groq = new GroqProvider(groqKey);
-    if (groq.isConfigured()) providers.push(groq);
-
-    const gemini = new GeminiProvider(geminiKey);
-    if (gemini.isConfigured()) providers.push(gemini);
-
-    const input: EvaluationInput = {
-      problemTitle: problem.title,
-      problemDescription: problem.description,
-      constraints,
-      edgeCases,
-      invariants,
-      rubric
-    };
-
-    for (const provider of providers) {
-      try {
-        const { result, retries, latencyMs } = await this.executeWithTimeoutAndRetry(
-          (signal) => provider.evaluateObservation(input, signal),
-          provider.name
-        );
-
-        if (this.validateObservationSchema(result)) {
-          this.logger.log(`Observations evaluated successfully using ${provider.name}. Latency: ${latencyMs}ms. Retries: ${retries}`);
-          return {
-            success: result.passed,
-            overallScore: Math.round((result.scores.completeness + result.scores.relevance + result.scores.depth) / 3),
-            scores: result.scores,
-            feedback: result.feedback,
-            strengths: result.strengths,
-            missingObservations: result.missingObservations,
-            metadata: {
-              evaluator: 'AI',
-              provider: provider.name,
-              confidence: Math.round(result.confidence * 100),
-              latencyMs,
-              retries,
-              promptVersion: 'v1.0.0'
-            }
-          };
-        } else {
-          this.logger.warn(`Provider ${provider.name} returned invalid schema formatting. Cascading...`);
-        }
-      } catch (err: any) {
-        this.logger.error(`Failed to evaluate using ${provider.name}: ${err.message}. Cascading...`);
-      }
-    }
-
-    // Fallback
-    this.logger.warn(`No AI providers configured or all calls failed. Invoking local Deterministic Fallback Engine...`);
-    const fallbackResult = this.evaluateObservationsDeterministic(constraints, edgeCases, invariants);
-    return {
-      ...fallbackResult,
-      strengths: ['Identified core input variables reference definitions.'],
-      missingObservations: ['Check secondary bounds indices limits and variables ranges.'],
-      metadata: {
-        evaluator: 'FALLBACK',
-        provider: null,
-        confidence: null,
-        latencyMs: 0,
-        retries: 0,
-        promptVersion: 'v1.0.0'
-      }
-    };
-  }
 
   async evaluateApproach(
     problem: any,
@@ -1277,108 +753,6 @@ export class AiOrchestratorService {
         retries: 0,
         promptVersion: 'v1.0.0'
       }
-    };
-  }
-
-  async getCodeHelp(problem: any, code: string, language: string): Promise<any> {
-    const groqKey = process.env.GROQ_API_KEY || '';
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-
-    const providers: AIProvider[] = [];
-    const groq = new GroqProvider(groqKey);
-    if (groq.isConfigured()) providers.push(groq);
-    const gemini = new GeminiProvider(geminiKey);
-    if (gemini.isConfigured()) providers.push(gemini);
-
-    const input: CodeHelpInput = {
-      problemTitle: problem.title,
-      problemDescription: problem.description,
-      code,
-      language
-    };
-
-    for (const provider of providers) {
-      try {
-        const { result, latencyMs } = await this.executeWithTimeoutAndRetry(
-          (signal) => provider.getCodeHelp(input, signal),
-          provider.name
-        );
-        if (result && typeof result.hint === 'string') {
-          return {
-            success: true,
-            hint: result.hint,
-            suggestedPatternRef: result.suggestedPatternRef || '',
-            evaluator: 'AI'
-          };
-        }
-      } catch (err: any) {
-        this.logger.error(`Failed to get code help from ${provider.name}: ${err.message}. Cascading...`);
-      }
-    }
-
-    // Fallback
-    return {
-      success: true,
-      hint: 'Think about mapping elements into memory scan lookups. Verify boundary indices are matching variables scopes.',
-      suggestedPatternRef: 'Use local single-pass scan lookup arrays tracking.',
-      evaluator: 'FALLBACK'
-    };
-  }
-
-  async evaluateCode(problem: any, code: string, language: string, status: string, errors: string): Promise<any> {
-    const groqKey = process.env.GROQ_API_KEY || '';
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-
-    const providers: AIProvider[] = [];
-    const groq = new GroqProvider(groqKey);
-    if (groq.isConfigured()) providers.push(groq);
-    const gemini = new GeminiProvider(geminiKey);
-    if (gemini.isConfigured()) providers.push(gemini);
-
-    const input: CodeReviewInput = {
-      problemTitle: problem.title,
-      problemDescription: problem.description,
-      code,
-      language,
-      status,
-      errors
-    };
-
-    for (const provider of providers) {
-      try {
-        const { result, latencyMs } = await this.executeWithTimeoutAndRetry(
-          (signal) => provider.evaluateCode(input, signal),
-          provider.name
-        );
-        if (result && typeof result.passed === 'boolean') {
-          return {
-            ...result,
-            success: true,
-            evaluator: 'AI',
-            metadata: { provider: provider.name, latencyMs }
-          };
-        }
-      } catch (err: any) {
-        this.logger.error(`Failed to review code using ${provider.name}: ${err.message}. Cascading...`);
-      }
-    }
-
-    // Fallback
-    const isPassed = status === 'ACCEPTED';
-    return {
-      success: true,
-      passed: isPassed,
-      observations: 'Code runs through sandbox execution layers. Coding structure conforms to standard syntax layout.',
-      optimizationsPossible: isPassed
-        ? 'Code matches target complexity boundaries. Make sure not to double iterate over lookup lists.'
-        : 'Look at the input index boundaries. Ensure mapping variables exist inside limits values.',
-      debuggingAdvice: isPassed ? null : 'Failed runtime outputs indicate off-by-one or mismatched keys retrieval scopes.',
-      scores: {
-        efficiency: isPassed ? 85 : 40,
-        readability: 80
-      },
-      evaluator: 'FALLBACK',
-      metadata: { provider: null, latencyMs: 0 }
     };
   }
 
@@ -1511,101 +885,6 @@ export class AiOrchestratorService {
     throw new Error('AI problem generation is unavailable. No problem was created.');
   }
 
-  async analyzeSubmissionCode(problem: any, code: string, language: string): Promise<AIAnalysisResult> {
-    const groqKey = process.env.GROQ_API_KEY || '';
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-
-    const providers: AIProvider[] = [];
-    const groq = new GroqProvider(groqKey);
-    if (groq.isConfigured()) providers.push(groq);
-    const gemini = new GeminiProvider(geminiKey);
-    if (gemini.isConfigured()) providers.push(gemini);
-
-    for (const provider of providers) {
-      try {
-        const { result, latencyMs } = await this.executeWithTimeoutAndRetry(
-          (signal) => provider.analyzeSubmissionCode(problem, code, language, signal),
-          provider.name
-        );
-        if (result && typeof result.timeComplexity === 'string') {
-          this.logger.log(`Analyzed code using ${provider.name}. Latency: ${latencyMs}ms`);
-          return result;
-        }
-      } catch (err: any) {
-        this.logger.error(`Failed to analyze code using ${provider.name}: ${err.message}. Cascading...`);
-      }
-    }
-
-    // Fallback static analyzer
-    this.logger.warn(`Submission analysis AI providers failed or not configured. Using local static fallback analyzer...`);
-    return this.analyzeSubmissionCodeDeterministic(problem.titleSlug || problem.id || '', code, language);
-  }
-
-  private analyzeSubmissionCodeDeterministic(problemSlug: string, code: string, language: string): AIAnalysisResult {
-    const codeClean = code.replace(/\s+/g, ' ');
-    const slug = problemSlug.toLowerCase().trim();
-
-    if (slug.includes('two-sum')) {
-      const hasMap = codeClean.includes('seen') || codeClean.includes('dict') || codeClean.includes('Map') || codeClean.includes('HashMap') || codeClean.includes('unordered_map');
-      if (hasMap) {
-        return {
-          timeComplexity: 'O(N)',
-          spaceComplexity: 'O(N)',
-          method: 'Single-Pass Hash Map Lookup',
-          feedback: 'Excellent! Your solution utilizes a Hash Map to achieve linear time complexity O(N). By storing numbers as keys and their index as value, you look up the target complement in O(1) average time.',
-          bruteForceComplexity: 'O(N^2)',
-          bruteForceTimeMs: 120,
-          optimalComplexity: 'O(N)',
-          optimalTimeMs: 35
-        };
-      }
-    }
-
-    if (slug.includes('contains-duplicate')) {
-      const hasSet = codeClean.includes('set') || codeClean.includes('Set') || codeClean.includes('HashSet') || codeClean.includes('unordered_set');
-      if (hasSet) {
-        return {
-          timeComplexity: 'O(N)',
-          spaceComplexity: 'O(N)',
-          method: 'Hash Set Seen Lookup',
-          feedback: 'Great job! Using a Hash Set to track seen numbers gives an optimal O(N) time complexity. We scan the list once and lookup in O(1).',
-          bruteForceComplexity: 'O(N^2)',
-          bruteForceTimeMs: 100,
-          optimalComplexity: 'O(N)',
-          optimalTimeMs: 25
-        };
-      }
-    }
-
-    if (slug.includes('top-k-frequent-elements')) {
-      const hasBucket = codeClean.includes('bucket') || codeClean.includes('buckets') || (codeClean.includes('count') && codeClean.includes('freq'));
-      if (hasBucket) {
-        return {
-          timeComplexity: 'O(N)',
-          spaceComplexity: 'O(N)',
-          method: 'Bucket Sort Frequency Grouping',
-          feedback: 'Outstanding! Your solution implements Bucket Sort mapping frequencies to buckets. This avoids sorting overhead, bringing the runtime complexity down to a linear O(N).',
-          bruteForceComplexity: 'O(N log N)',
-          bruteForceTimeMs: 150,
-          optimalComplexity: 'O(N)',
-          optimalTimeMs: 45
-        };
-      }
-    }
-
-    // General fallback
-    return {
-      timeComplexity: 'O(N^2)',
-      spaceComplexity: 'O(1)',
-      method: 'Brute Force Iteration',
-      feedback: 'Your code runs through basic loops. Consider using auxiliary structures like a Hash Map or Set to lower the complexity and improve lookup speeds.',
-      bruteForceComplexity: 'O(N^2)',
-      bruteForceTimeMs: 120,
-      optimalComplexity: 'O(N)',
-      optimalTimeMs: 35
-    };
-  }
-
   async getCoachChatResponse(problem: any, code: string, language: string, message: string, history: any[]): Promise<any> {
     const groqKey = process.env.GROQ_API_KEY || '';
     const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
@@ -1679,20 +958,6 @@ export class AiOrchestratorService {
     return false;
   }
 
-  private validateObservationSchema(parsed: any): parsed is EvaluationResult {
-    if (typeof parsed !== 'object' || parsed === null) return false;
-    if (typeof parsed.passed !== 'boolean') return false;
-    if (typeof parsed.scores !== 'object' || parsed.scores === null) return false;
-    if (typeof parsed.scores.completeness !== 'number') return false;
-    if (typeof parsed.scores.relevance !== 'number') return false;
-    if (typeof parsed.scores.depth !== 'number') return false;
-    if (typeof parsed.confidence !== 'number') return false;
-    if (typeof parsed.feedback !== 'string') return false;
-    if (!Array.isArray(parsed.strengths)) return false;
-    if (!Array.isArray(parsed.missingObservations)) return false;
-    return true;
-  }
-
   private validateApproachSchema(parsed: any): parsed is ApproachEvaluationResult {
     if (typeof parsed !== 'object' || parsed === null) return false;
     if (typeof parsed.passed !== 'boolean') return false;
@@ -1703,62 +968,6 @@ export class AiOrchestratorService {
     if (!Array.isArray(parsed.strengths)) return false;
     if (!Array.isArray(parsed.logicalGaps)) return false;
     return true;
-  }
-
-  private getRubric(problemSlug: string): ObservationRubric {
-    const clean = problemSlug.toLowerCase().trim();
-    if (PROBLEM_RUBRICS[clean]) {
-      return PROBLEM_RUBRICS[clean];
-    }
-    return {
-      importantConstraints: ['Input sizes bounds limits', 'Negative / overflow constraints'],
-      importantEdgeCases: ['Empty collections / null checks', 'Single-element parameters'],
-      expectedInvariants: ['Logical loop invariant state rules', 'Pointers movement invariant logic'],
-      relevantPatternSignals: ['Arrays & Hashing', 'Two Pointers']
-    };
-  }
-
-  private evaluateObservationsDeterministic(constraints: string, edgeCases: string, invariants: string) {
-    let completeness = 60;
-    let relevance = 60;
-    let depth = 60;
-
-    const constraintsKeywords = ['length', 'size', 'n', 'bounds', '10^', 'limit', 'range', 'nums'];
-    for (const kw of constraintsKeywords) {
-      if (constraints.toLowerCase().includes(kw)) {
-        completeness = Math.min(100, completeness + 10);
-      }
-    }
-
-    const edgeKeywords = ['empty', 'null', 'negative', 'zero', '0', '1', 'duplicate', 'same', 'sorted'];
-    for (const kw of edgeKeywords) {
-      if (edgeCases.toLowerCase().includes(kw)) {
-        relevance = Math.min(100, relevance + 10);
-      }
-    }
-
-    const invariantKeywords = ['index', 'pointer', 'hash', 'map', 'set', 'order', 'sorted', 'sum', 'count', 'frequency'];
-    for (const kw of invariantKeywords) {
-      if (invariants.toLowerCase().includes(kw)) {
-        depth = Math.min(100, depth + 10);
-      }
-    }
-
-    const overallScore = Math.round((completeness + relevance + depth) / 3);
-    const passed = overallScore >= 70;
-
-    return {
-      success: passed,
-      overallScore,
-      scores: {
-        completeness,
-        relevance,
-        depth
-      },
-      feedback: passed
-        ? `Observations accepted with diagnostic rating of ${overallScore}%. You have fully cleared the Observation Gate!`
-        : `Your observations scored ${overallScore}%. Make sure to specify key bounds, empty inputs, or order invariants.`
-    };
   }
 
   private evaluateApproachDeterministic(timeComplexity: string, spaceComplexity: string, pseudocode: string): ApproachEvaluationResult {

@@ -28,6 +28,7 @@ export default function ProblemCreatorPage() {
   const router = useRouter();
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [createdResult, setCreatedResult] = useState<any>(null);
@@ -70,10 +71,11 @@ export default function ProblemCreatorPage() {
     if (!confirmed) return;
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/problems/${problemId}`, {
+      const response = await fetch(`${apiUrl}/problems/${problemId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!response.ok) throw new Error(`Delete failed: server returned ${response.status}`);
       setLibraryProblems((prev) => prev.filter((p) => p.id !== problemId));
     } catch (e) {
       console.error('Delete failed', e);
@@ -383,7 +385,7 @@ export default function ProblemCreatorPage() {
                         </div>
                       </div>
 
-                      {/* Reset or Delete & Regenerate button */}
+                      {/* Separate destructive actions */}
                       <div className="flex items-center justify-between pt-4 border-t border-stone-100">
                         <button
                           onClick={async () => {
@@ -395,20 +397,57 @@ export default function ProblemCreatorPage() {
 
                             try {
                               const token = localStorage.getItem('token');
-                              await fetch(`${apiUrl}/problems/${createdResult.problemId}`, {
+                              const response = await fetch(`${apiUrl}/problems/${createdResult.problemId}`, {
                                 method: 'DELETE',
                                 headers: { Authorization: `Bearer ${token}` },
                               });
+                              if (!response.ok) throw new Error(`Delete failed: server returned ${response.status}`);
                               setCreatedResult(null);
                               setPrompt('');
                             } catch (e) {
-                              console.error('Delete failed', e);
+                              setErrorMsg(e instanceof Error ? e.message : 'Delete failed');
                             }
                           }}
                           className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 border-2 border-b-4 border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition-all active:translate-y-[2px] active:border-b-2 flex items-center gap-1.5"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                          <span>Delete & Regenerate with AI</span>
+                          <span>Delete Problem</span>
+                        </button>
+
+                        <button
+                          disabled={isRegenerating}
+                          onClick={async () => {
+                            if (!createdResult?.problemId || !prompt.trim()) return;
+                            const confirmed = window.confirm(
+                              'Regenerate this problem with AI? The current problem will be replaced only after the new problem is generated successfully.'
+                            );
+                            if (!confirmed) return;
+
+                            setIsRegenerating(true);
+                            setErrorMsg('');
+                            try {
+                              const token = localStorage.getItem('token');
+                              const response = await fetch(`${apiUrl}/problems/${createdResult.problemId}/regenerate`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  Authorization: `Bearer ${token}`,
+                                },
+                                body: JSON.stringify({ prompt }),
+                              });
+                              if (!response.ok) throw new Error(`Regeneration failed: server returned ${response.status}`);
+                              setCreatedResult(await response.json());
+                              setSelectedLangTab('python');
+                            } catch (e) {
+                              setErrorMsg(e instanceof Error ? e.message : 'Regeneration failed');
+                            } finally {
+                              setIsRegenerating(false);
+                            }
+                          }}
+                          className="flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-amber-300 bg-amber-50 px-3.5 py-1.5 text-xs font-bold text-amber-700 transition-all hover:bg-amber-100 active:translate-y-[2px] active:border-b-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <RefreshCw className={`h-3.5 w-3.5 ${isRegenerating ? 'animate-spin' : ''}`} />
+                          <span>{isRegenerating ? 'Regenerating...' : 'Regenerate with AI'}</span>
                         </button>
 
                         <button
