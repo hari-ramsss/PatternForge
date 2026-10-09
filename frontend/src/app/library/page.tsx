@@ -40,7 +40,7 @@ const LIBRARY_TOUR_STEPS: TourStep[] = [
   {
     target: '[data-tour="lib-new-card"]',
     title: 'Write your own cards',
-    body: 'After solving a problem, capture the pattern name, the clues that give it away, and the invariants — future-you will thank you at review time.',
+    body: 'After solving a problem, note the pattern, the clues that helped you spot it, and the key idea you want to remember.',
     placement: 'bottom',
   },
 ];
@@ -391,7 +391,7 @@ export default function PatternLibraryPage() {
                             <div className="flex items-center justify-between border-b border-stone-800 pb-2">
                               <div className="flex items-center gap-1.5 text-amber-400 font-mono text-[10px] font-bold uppercase tracking-wider">
                                 <Brain className="w-3.5 h-3.5 text-amber-400" />
-                                <span>Deep Structural Invariants & Insights</span>
+                                <span>Key idea and strategy</span>
                               </div>
                               <button
                                 onClick={() => toggleFlip(card.id)}
@@ -404,7 +404,7 @@ export default function PatternLibraryPage() {
                             {/* Core Invariant Breakdown */}
                             <div className="p-3 bg-[#242422] border border-stone-800 rounded-xl space-y-1">
                               <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
-                                Core Invariant & Strategy
+                                Key idea to remember
                               </span>
                               <p className="text-xs text-stone-200 font-sans leading-relaxed">
                                 {card.invariants}
@@ -418,7 +418,7 @@ export default function PatternLibraryPage() {
                                 <span className="font-mono text-amber-400 font-bold">{card.optimalTime}</span>
                               </div>
                               <div className="p-2.5 bg-stone-900/80 border border-stone-800 rounded-lg">
-                                <span className="text-[9px] text-stone-500 font-mono block uppercase">Space Auxiliary</span>
+                                <span className="text-[9px] text-stone-500 font-mono block uppercase">Space complexity</span>
                                 <span className="font-mono text-purple-400 font-bold">{card.optimalSpace}</span>
                               </div>
                             </div>
@@ -526,9 +526,9 @@ export default function PatternLibraryPage() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-stone-700 block mb-1">Structural Invariants</label>
+                  <label className="font-bold text-stone-700 block mb-1">Key idea to remember</label>
                   <textarea
-                    placeholder="Detail mathematical rules or algorithmic invariants..."
+                    placeholder="What important rule or idea makes this solution work?"
                     value={newInvariants}
                     onChange={(e) => setNewInvariants(e.target.value)}
                     className="h-16 w-full resize-none rounded-xl border border-[#e4dbcf] bg-white px-3 py-2 text-slate-800 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"

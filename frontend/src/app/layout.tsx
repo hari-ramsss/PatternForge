@@ -23,7 +23,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "PatternForge AI — Coding Workspace",
-  description: "The Thinking-First Coding Sandbox and DSA Preparation Arena.",
+  description: "A guided workspace for learning data structures and algorithms through coding practice.",
 };
 
 export default function RootLayout({

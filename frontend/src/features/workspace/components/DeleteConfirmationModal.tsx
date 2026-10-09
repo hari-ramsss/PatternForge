@@ -39,7 +39,7 @@ export default function DeleteConfirmationModal({
           </div>
           <div>
             <h3 className="font-sans text-lg font-bold text-stone-900 leading-snug">Confirm Problem Deletion</h3>
-            <span className="text-[11px] font-mono text-rose-600 font-bold uppercase tracking-wider">Warning: Permanent Database Purge</span>
+            <span className="text-[11px] font-mono text-rose-600 font-bold uppercase tracking-wider">Warning: Permanent deletion</span>
           </div>
         </div>
 
@@ -49,7 +49,7 @@ export default function DeleteConfirmationModal({
             Are you 100% sure you want to delete <span className="text-amber-800 font-mono font-bold">"{problemTitle}"</span>?
           </p>
           <p className="text-[11px] text-stone-500">
-            This action will permanently purge all test cases, starter code boilerplate, and execution records from PostgreSQL. You will need to regenerate this problem using AI afterwards.
+            This permanently deletes the problem, its test cases, starter code, and run history. You can create the problem again with AI later.
           </p>
         </div>
 

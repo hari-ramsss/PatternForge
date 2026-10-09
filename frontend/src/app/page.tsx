@@ -164,7 +164,7 @@ export default function AuthPage() {
             disabled={isLoading}
             className="w-full rounded-2xl border-2 border-b-4 border-amber-600/70 bg-gradient-to-r from-amber-500 to-amber-400 py-3 flex items-center justify-center gap-2 text-sm font-black uppercase tracking-wide text-slate-950 transition-all active:translate-y-[2px] active:border-b-2 hover:from-amber-400 hover:to-amber-300 disabled:opacity-60 disabled:active:translate-y-0"
           >
-            {isLoading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
+            {isLoading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
             {!isLoading && <ArrowRight className="w-4 h-4 shrink-0" />}
           </button>
         </form>

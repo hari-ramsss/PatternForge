@@ -76,37 +76,37 @@ export default function MistakesDashboardPage() {
           <div className="space-y-3.5"><div className="space-y-3 rounded-3xl border-2 border-b-4 border-[#e8e1d3] bg-white p-4"><div className="flex items-center justify-between text-xs font-semibold text-slate-700"><span className="flex items-center gap-2"><Flame className="h-4 w-4 fill-amber-500 text-amber-500" />7 Day Streak</span><span className="rounded-full border-2 border-[#f6d89b] bg-[#fff1d5] px-2 py-0.5 font-mono text-[10px] font-bold text-[#c56a17]">Active</span></div><div className="flex items-center justify-between border-t-2 border-[#eee7da] pt-2.5 text-xs text-slate-500"><span>Focus area</span><span className="font-mono text-sm font-bold text-[#d97717]">Insights</span></div></div><div className="flex items-center justify-between rounded-2xl border-2 border-b-4 border-[#e8e1d3] bg-white p-2.5"><div className="flex items-center gap-2.5"><div className="grid h-7 w-7 place-items-center rounded-full border-2 border-b-4 border-amber-600/50 bg-gradient-to-tr from-amber-500 to-amber-300 text-xs font-black text-slate-950">P</div><span className="text-xs font-bold text-slate-700">Pattern learner</span></div><span className="h-2 w-2 rounded-full bg-emerald-400" /></div></div>
         </aside>
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden pt-16 lg:pt-0">
-          <header className="flex shrink-0 items-center justify-between border-b-2 border-[#e8e1d3] bg-[#fffdf8]/90 px-5 py-4 backdrop-blur-xl sm:px-8"><div><h1 className="flex items-center gap-2 text-lg font-black tracking-tight text-[#17263a]"><Brain className="h-5 w-5 text-[#e67b1f]" />Mistake Intelligence</h1><p className="text-xs font-medium text-slate-400">Turn failed attempts into a sharper practice plan</p></div><button onClick={() => router.push('/interview-arena')} className="hidden items-center gap-1.5 rounded-2xl border-2 border-b-4 border-amber-600/70 bg-gradient-to-r from-amber-500 to-amber-400 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-950 transition-all active:translate-y-[2px] active:border-b-2 sm:flex"><Award className="h-4 w-4" />Launch Assessment</button></header>
+          <header className="flex shrink-0 items-center justify-between border-b-2 border-[#e8e1d3] bg-[#fffdf8]/90 px-5 py-4 backdrop-blur-xl sm:px-8"><div><h1 className="flex items-center gap-2 text-lg font-black tracking-tight text-[#17263a]"><Brain className="h-5 w-5 text-[#e67b1f]" />Practice Review</h1><p className="text-xs font-medium text-slate-400">Turn missed questions into a smarter practice plan</p></div><button onClick={() => router.push('/interview-arena')} className="hidden items-center gap-1.5 rounded-2xl border-2 border-b-4 border-amber-600/70 bg-gradient-to-r from-amber-500 to-amber-400 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-950 transition-all active:translate-y-[2px] active:border-b-2 sm:flex"><Award className="h-4 w-4" />Launch Assessment</button></header>
           <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-16 pt-5 sm:px-8 sm:pt-7">
             {/* Banner */}
             <div className="mx-auto max-w-5xl space-y-2 rounded-3xl border-2 border-b-4 border-[#e8e1d3] bg-[#fffdf8] p-5">
-              <h1 className="text-xl font-black tracking-tight text-[#17263a]">Telemetry & Mistake Intelligence</h1>
+              <h1 className="text-xl font-black tracking-tight text-[#17263a]">Practice Review</h1>
               <p className="max-w-xl text-xs leading-relaxed text-slate-500">
-                Aggregates runtime execution errors, failed boundary test cases, and time-out events to diagnose your top algorithmic vulnerabilities.
+                Review failed test cases and run results to find concepts you may want to practice again.
               </p>
             </div>
 
             {loading ? (
               <div className="py-20 flex flex-col items-center gap-3">
                 <RefreshCw className="animate-spin text-amber-600 w-8 h-8" />
-                <p className="text-sm font-sans text-stone-500">Analyzing telemetry logs...</p>
+                <p className="text-sm font-sans text-stone-500">Reviewing your practice history...</p>
               </div>
             ) : apiError ? (
               <div className="space-y-3 rounded-3xl border-2 border-b-4 border-[#e8e1d3] bg-white p-8 text-center text-xs text-slate-500">
                 <AlertTriangle className="mx-auto h-10 w-10 text-amber-500" />
                 <h3 className="text-base font-black text-[#17263a]">Analytics are temporarily unavailable</h3>
-                <p>Start the backend API and try again to load your mistake intelligence.</p>
+                <p>Your practice review is unavailable right now. Please try again in a moment.</p>
                 <button onClick={() => window.location.reload()} className="rounded-xl border-2 border-b-4 border-[#0b1524] bg-[#17263a] px-4 py-2 text-xs font-bold text-amber-300 transition-all active:translate-y-[2px] active:border-b-2">Retry analytics</button>
               </div>
             ) : !data ? (
               <div className="mx-auto max-w-5xl rounded-3xl border-2 border-b-4 border-[#e8e1d3] bg-[#fffdf8] p-8 text-center text-xs text-slate-500">
-                No mistake telemetry logged yet. Complete practice drills or Online Assessments to generate analytics!
+                No practice mistakes yet. Solve problems or complete an assessment to see your progress here.
               </div>
             ) : (
               <div className="space-y-6">
                 {/* Top Frequency Breakdown Cards */}
                 <div className="space-y-3">
-                  <h3 className="text-base font-black tracking-tight text-[#17263a]">Vulnerability Distribution</h3>
+                  <h3 className="text-base font-black tracking-tight text-[#17263a]">Topics to practice again</h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {Object.entries(data.mistakeCategories).map(([category, count], idx) => (

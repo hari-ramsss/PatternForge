@@ -153,7 +153,7 @@ export default function AssessmentPage() {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to submit diagnostic quiz');
+        throw new Error('Could not save your quiz answers');
       }
 
       const data = await res.json();
@@ -223,7 +223,7 @@ export default function AssessmentPage() {
               <div>
                 <span className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider block mb-1">Step 1 of 3</span>
                 <h2 className="font-sans text-2xl font-bold text-stone-900 leading-tight">Personalize Your Assessment</h2>
-                <p className="text-stone-500 text-sm mt-0.5">Let's gather some info to calibrate your personalized target roadmap.</p>
+                <p className="text-stone-500 text-sm mt-0.5">Let's gather a little information to shape your learning path.</p>
               </div>
 
               {/* Language Preference */}
@@ -342,10 +342,9 @@ export default function AssessmentPage() {
               </div>
               <div className="space-y-2">
                 <span className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider block">Step 2 of 3</span>
-                <h2 className="font-sans text-3xl font-bold text-stone-900">Let's Calibrate Your Mind</h2>
+                <h2 className="font-sans text-3xl font-bold text-stone-900">Let's see what you already know</h2>
                 <p className="text-stone-500 text-sm max-w-md mx-auto leading-relaxed">
-                  We will present a 6-step conceptual quiz (pattern identification, complexity sliders, constraints checking). 
-                  No coding is required. We evaluate your core baseline strategies.
+                  Answer six quick questions about coding patterns, time and space complexity, and problem constraints. No coding is required.
                 </p>
               </div>
 
@@ -354,14 +353,14 @@ export default function AssessmentPage() {
                   onClick={handleStartQuiz}
                   className="py-3 px-6 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-2 text-sm shadow-sm"
                 >
-                  <span>Begin Conceptual Quiz</span>
+                  <span>Start the quiz</span>
                   <Sparkles className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => router.push('/dashboard')}
                   className="text-xs text-stone-400 hover:text-stone-600 underline font-medium transition"
                 >
-                  Skip diagnostic quiz (default baseline 50/100)
+                  Skip the quiz
                 </button>
               </div>
             </div>
@@ -392,7 +391,7 @@ export default function AssessmentPage() {
                   <div className="space-y-4">
                     <div>
                       <h3 className="font-workspace text-lg font-bold text-stone-900">1. Pattern Recognition</h3>
-                      <p className="text-stone-500 text-xs mt-0.5">Determine the core algorithmic pattern mapping the inputs to their corresponding outputs.</p>
+                      <p className="text-stone-500 text-xs mt-0.5">Which coding pattern best explains how the input becomes the output?</p>
                     </div>
 
                     <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 font-mono text-xs text-stone-600 space-y-1">
@@ -423,7 +422,7 @@ export default function AssessmentPage() {
                   <div className="space-y-4">
                     <div>
                       <h3 className="font-workspace text-lg font-bold text-stone-900">2. Pattern Recognition</h3>
-                      <p className="text-stone-500 text-xs mt-0.5">Determine the core algorithmic pattern mapping the inputs to their corresponding outputs.</p>
+                      <p className="text-stone-500 text-xs mt-0.5">Which coding pattern best fits this problem?</p>
                     </div>
 
                     <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 font-mono text-xs text-stone-600 space-y-1">
@@ -526,8 +525,8 @@ for i in range(len(arr)):
                 {quizIdx === 4 && (
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-workspace text-lg font-bold text-stone-900">5. Critical Invariants</h3>
-                      <p className="text-stone-500 text-xs mt-0.5">Select the TWO correct invariants concerning finding the shortest path on a weighted graph with positive weights.</p>
+                      <h3 className="font-workspace text-lg font-bold text-stone-900">5. Shortest-path rules</h3>
+                      <p className="text-stone-500 text-xs mt-0.5">Choose TWO rules that are always true when finding the shortest path in a graph with positive edge weights.</p>
                     </div>
 
                     <div className="space-y-2 pt-2">
@@ -632,8 +631,8 @@ while low <= high:
                 <div className="absolute inset-0 rounded-full border-4 border-amber-100 border-t-amber-600 animate-spin" />
               </div>
               <div className="space-y-1">
-                <h3 className="font-sans text-lg font-bold text-stone-900">AI Scoring Engine Active</h3>
-                <p className="text-stone-450 text-xs">Evaluating your logic responses and tracking pattern alignment...</p>
+                <h3 className="font-sans text-lg font-bold text-stone-900">Reviewing your answers</h3>
+                <p className="text-stone-450 text-xs">Checking your reasoning and coding pattern choices...</p>
               </div>
             </div>
           )}
@@ -646,8 +645,8 @@ while low <= high:
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <span className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider block">Assessment Complete</span>
-                <h2 className="font-sans text-2xl font-bold text-stone-900 leading-tight">Your Ability Profile</h2>
-                <p className="text-stone-500 text-xs mt-0.5">Your diagnostic baseline scores across six core dimensions.</p>
+                <h2 className="font-sans text-2xl font-bold text-stone-900 leading-tight">Your Coding Skill Profile</h2>
+                <p className="text-stone-500 text-xs mt-0.5">A snapshot of six skills that help you solve coding problems.</p>
               </div>
 
               {/* Layout for Radar Chart & AI review */}
@@ -655,7 +654,7 @@ while low <= high:
                 
                 {/* SVG Radar Chart */}
                 <div className="flex flex-col items-center">
-                  <span className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider block mb-3">Diagnostic Radar Chart</span>
+                  <span className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider block mb-3">Skill overview</span>
                   <svg className="w-48 h-48 overflow-visible" viewBox="0 0 200 200">
                     {/* Grids */}
                     <circle cx="100" cy="100" r="70" fill="none" stroke="#F1EFEA" strokeWidth="1" />
@@ -716,7 +715,7 @@ while low <= high:
                 <div className="space-y-4 font-sans text-xs">
                   <div className="flex items-center gap-1.5 text-stone-500 font-semibold uppercase tracking-wider">
                     <BrainCircuit className="w-4 h-4 text-amber-600" />
-                    <span>AI Mentor Baseline Briefing</span>
+                    <span>Personalized practice tips</span>
                   </div>
                   <div className="p-4 bg-stone-50 border border-stone-200/70 rounded-2xl text-stone-600 leading-relaxed font-normal">
                     {scores.mentorBrief}
@@ -730,7 +729,7 @@ while low <= high:
                   onClick={() => router.push('/dashboard')}
                   className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold transition flex items-center justify-center gap-2 text-sm shadow-sm"
                 >
-                  <span>Go to Personalized Roadmap</span>
+                  <span>Go to your learning path</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>

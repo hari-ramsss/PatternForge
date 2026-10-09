@@ -50,7 +50,7 @@ const DASHBOARD_TOUR_STEPS: TourStep[] = [
   {
     target: '[data-tour="nav-journey"]',
     title: 'Everything lives in the sidebar',
-    body: 'Journey (where you are), Pattern Library for browsing, OA Arena for timed mock assessments, Insights for your mistake analytics, and the AI Problem Creator.',
+    body: 'Journey (where you are), Pattern Library for browsing, Interview Practice for timed challenges, Practice Review for past mistakes, and the AI Problem Creator.',
     placement: 'right',
   },
   {
@@ -216,7 +216,7 @@ const INITIAL_JOURNEY_NODES: JourneyNode[] = [
     category: 'core-patterns',
     status: 'AVAILABLE',
     masteryPct: 40,
-    description: 'FIFO buffers and level-order processing.',
+    description: 'Queues process items in the order they arrive.',
     prerequisites: ['sliding-window'],
     problemsAvailable: 8,
     rewardXp: 400,
@@ -299,7 +299,7 @@ const INITIAL_JOURNEY_NODES: JourneyNode[] = [
     category: 'data-structures',
     status: 'LOCKED',
     masteryPct: 0,
-    description: 'DFS depth traversals and BST invariants.',
+    description: 'DFS traversals and binary search tree ordering rules.',
     prerequisites: ['recursion'],
     problemsAvailable: 12,
     rewardXp: 480,
@@ -510,8 +510,12 @@ export default function PatternForgeHomePage() {
     ? email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1)
     : 'Hari';
 
-  const handleStartPractice = (slug: string) => {
-    router.push(`/workspace/${slug}`);
+  const handleStartPractice = (slug: string, topicTitle?: string, subtopicTitle?: string) => {
+    const context = new URLSearchParams();
+    if (topicTitle) context.set('topic', topicTitle);
+    if (subtopicTitle) context.set('subtopic', subtopicTitle);
+    const query = context.toString();
+    router.push(`/workspace/${slug}${query ? `?${query}` : ''}`);
   };
 
   const handleGenerateAiProblem = async (patternTitle: string, subtopicTitle?: string) => {
@@ -589,7 +593,7 @@ export default function PatternForgeHomePage() {
               Good morning, {userName}.
             </h1>
             <p className="max-w-full truncate text-xs text-slate-400 font-medium">
-              Directed prerequisite DAG • Recognize patterns, master subtopics, practice AI drills
+              Follow the learning path, build skills, and practice with coding problems
             </p>
           </div>
 

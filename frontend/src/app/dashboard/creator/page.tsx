@@ -104,12 +104,12 @@ export default function ProblemCreatorPage() {
     setCreatedResult(null);
 
     const statuses = [
-      "AI Coach is analyzing description...",
-      "Extracting examples and algorithmic inputs...",
-      "Drafting language starter boilerplates...",
-      "Synthesizing edge case test targets...",
-      "Registering problem in PostgreSQL schema...",
-      "Seeding Redis cached buffers..."
+      "Reviewing your problem description...",
+      "Preparing examples and inputs...",
+      "Preparing starter code...",
+      "Creating test cases...",
+      "Saving your new problem...",
+      "Adding it to your practice list..."
     ];
 
     let statusIdx = 0;
@@ -138,18 +138,18 @@ export default function ProblemCreatorPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`AI synthesis failed: Server returned ${response.status}`);
+        throw new Error(`Problem creation failed: server returned ${response.status}`);
       }
 
       const data = await response.json();
       if (data.success) {
         setCreatedResult(data);
       } else {
-        throw new Error("Failed to initialize problem schemas.");
+        throw new Error("Could not save the new problem. Please try again.");
       }
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.message || "An unexpected error occurred during synthesis.");
+      setErrorMsg(err.message || "Something went wrong while creating the problem.");
     } finally {
       clearInterval(statusInterval);
       setIsLoading(false);
@@ -171,7 +171,7 @@ export default function ProblemCreatorPage() {
                   Interview Problem Creator
                 </h1>
                 <p className="max-w-2xl text-sm leading-relaxed text-slate-500">
-                  Paste a question you received in a real technical interview, or write out a custom challenge. The AI Orchestrator will instantly construct the descriptions, optimal targets, examples, boilerplates, and private verification test cases.
+                  Paste a question from a technical interview, or write your own coding challenge. AI will prepare the problem description, examples, starter code, and test cases.
                 </p>
               </div>
 
@@ -223,7 +223,7 @@ export default function ProblemCreatorPage() {
                     <div className="flex items-center justify-between pt-2">
                       <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
                         <Cpu className="h-3.5 w-3.5 text-slate-300" />
-                        <span>Uses Groq / Gemini API analysis models.</span>
+                        <span>AI helps turn your idea into a coding problem.</span>
                       </div>
                       <button
                         onClick={() => handleCreateProblem(prompt)}
@@ -238,7 +238,7 @@ export default function ProblemCreatorPage() {
                         ) : (
                           <>
                             <Send className="w-4 h-4 text-white" />
-                            <span>Synthesize Spec</span>
+                            <span>Create Problem</span>
                           </>
                         )}
                       </button>
@@ -250,7 +250,7 @@ export default function ProblemCreatorPage() {
                 {isLoading && (
                   <div className="flex flex-col items-center justify-center space-y-4 rounded-3xl border-2 border-b-4 border-[#e8e1d3] bg-[#fffdf8] p-12 text-center">
                     <RefreshCw className="w-10 h-10 text-amber-600 animate-spin" />
-                    <h3 className="text-lg font-black text-[#17263a]">Assembling Algorithmic Model</h3>
+                    <h3 className="text-lg font-black text-[#17263a]">Creating your coding problem</h3>
                     <p className="max-w-sm text-sm text-slate-500 animate-pulse">
                       {statusText}
                     </p>
@@ -273,7 +273,7 @@ export default function ProblemCreatorPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="rounded border border-emerald-400/40 bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">
-                            Seed Success
+                            Problem created
                           </span>
                           <span className="font-mono text-xs text-slate-400">ID: {createdResult.problemId}</span>
                         </div>
@@ -285,7 +285,7 @@ export default function ProblemCreatorPage() {
                         className="flex shrink-0 items-center gap-2 rounded-2xl border-2 border-b-4 border-amber-600/70 bg-gradient-to-r from-amber-500 to-amber-400 px-6 py-3 text-xs font-black uppercase tracking-wider text-slate-950 transition-all hover:from-amber-400 hover:to-amber-300 active:translate-y-[2px] active:border-b-2"
                       >
                         <Play className="w-4 h-4 fill-white text-white" />
-                        Practice in Arena
+                        Open Coding Workspace
                       </button>
                     </div>
 
@@ -299,15 +299,15 @@ export default function ProblemCreatorPage() {
                           <span className="text-xs font-bold text-slate-700">{createdResult.difficulty}</span>
                         </div>
                         <div className="rounded-2xl border-2 border-[#e8e1d3] bg-[#f8f5ed] p-3.5">
-                          <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Topic Classification</span>
+                          <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Topic</span>
                           <span className="text-xs font-bold capitalize text-slate-700">{createdResult.topic}</span>
                         </div>
                         <div className="rounded-2xl border-2 border-[#e8e1d3] bg-[#f8f5ed] p-3.5">
-                          <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Target Time Limit</span>
+                          <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Time Complexity</span>
                           <span className="text-xs font-bold text-slate-700">{createdResult.optimalTime}</span>
                         </div>
                         <div className="rounded-2xl border-2 border-[#e8e1d3] bg-[#f8f5ed] p-3.5">
-                          <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Target Space Limit</span>
+                          <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Space Complexity</span>
                           <span className="text-xs font-bold text-slate-700">{createdResult.optimalSpace}</span>
                         </div>
                       </div>
@@ -327,7 +327,7 @@ export default function ProblemCreatorPage() {
                       <div className="space-y-3 border-b border-[#EFECE6] pb-6">
                         <h3 className="text-xs uppercase font-bold text-stone-400 tracking-wider flex items-center gap-1.5">
                           <HelpCircle className="w-3.5 h-3.5 text-stone-400" />
-                          Generated Example Sets
+                          Examples
                         </h3>
                         <div className="space-y-2.5">
                           {createdResult.generatedSpec.examples?.map((ex: any, i: number) => (
@@ -358,7 +358,7 @@ export default function ProblemCreatorPage() {
                       <div className="space-y-3">
                         <h3 className="text-xs uppercase font-bold text-stone-400 tracking-wider flex items-center gap-1.5">
                           <Code className="w-3.5 h-3.5 text-stone-400" />
-                          Starter Boilerplates
+                          Starter code
                         </h3>
 
                         {/* Tabs Selector Bar */}
@@ -457,7 +457,7 @@ export default function ProblemCreatorPage() {
                           }}
                           className="text-xs font-bold text-stone-400 hover:text-stone-850 transition uppercase tracking-wider"
                         >
-                          Seed Another Problem
+                          Create another problem
                         </button>
                       </div>
 
@@ -485,7 +485,7 @@ export default function ProblemCreatorPage() {
                   <Library className="h-4 w-4 text-[#e67b1f]" />
                   Interview Problems
                 </h3>
-                <p className="text-xs font-medium text-slate-400">Every problem you created with the AI synthesizer</p>
+                <p className="text-xs font-medium text-slate-400">Problems you created with AI</p>
               </div>
               <button
                 onClick={() => setShowLibrary(false)}
@@ -525,7 +525,7 @@ export default function ProblemCreatorPage() {
                     {librarySearch ? 'No problems match your search' : 'No interview problems yet'}
                   </p>
                   <p className="max-w-xs text-xs text-slate-400">
-                    {librarySearch ? 'Try a different keyword.' : 'Synthesize your first one above — it will appear here automatically.'}
+                    {librarySearch ? 'Try a different keyword.' : 'Create your first problem above. It will appear here automatically.'}
                   </p>
                 </div>
               ) : (

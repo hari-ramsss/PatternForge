@@ -9,7 +9,7 @@ import { LearningWorld } from '../learning-world/LearningWorld';
 type GeneratedProblem = { id: string; title: string; difficulty: string; subtopic?: string | null };
 type SavedProblem = { id: string; title: string; difficulty: string; topic?: string; subtopic?: string | null; solved?: boolean };
 type CurriculumEntry = { id: string; topic: string; title: string; sortOrder: number; canonicalSlug?: string | null; canonicalTitle?: string | null; problemAssignments?: Array<{ role: string; problem: { id: string; title: string; difficulty: string } }> };
-interface AlgorithmJourneyMapProps { initialNodes: JourneyNode[]; existingProblems: SavedProblem[]; curriculum?: CurriculumEntry[]; onStartPractice: (slug: string) => void; onGenerateAiProblem: (patternTitle: string, subtopicTitle?: string) => Promise<GeneratedProblem>; }
+interface AlgorithmJourneyMapProps { initialNodes: JourneyNode[]; existingProblems: SavedProblem[]; curriculum?: CurriculumEntry[]; onStartPractice: (slug: string, topicTitle?: string, subtopicTitle?: string) => void; onGenerateAiProblem: (patternTitle: string, subtopicTitle?: string) => Promise<GeneratedProblem>; }
 
 export const AlgorithmJourneyMap: React.FC<AlgorithmJourneyMapProps> = ({ initialNodes, existingProblems, curriculum = [], onStartPractice, onGenerateAiProblem }) => {
   const [nodes, setNodes] = useState<JourneyNode[]>(initialNodes);

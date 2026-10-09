@@ -81,6 +81,8 @@ interface TestCase {
 interface Problem {
   id: string;
   title: string;
+  topic?: string;
+  subtopic?: string | null;
   description: string;
   difficulty: string;
   timeLimit: number;
@@ -590,7 +592,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to seed test cases');
+        throw new Error(err.message || 'Could not save the test cases');
       }
       return res.json();
     },
@@ -861,6 +863,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
   };
 
   const [leftTab, setLeftTab] = useState<'problem' | 'coach'>('problem');
+  const [mobileWorkspacePane, setMobileWorkspacePane] = useState<'problem' | 'code'>('problem');
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'coach'; content: string }>>([
     { role: 'coach', content: "Hello! I am your Socratic Coding Coach. What questions do you have about the problem or approach? Let's build the solution step-by-step!" }
   ]);
@@ -874,48 +877,91 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
   }, [chatMessages, isSendingChat, leftTab]);
 
   const [problemsList, setProblemsList] = useState<any[]>([]);
+  const [isGeneratingTopicProblem, setIsGeneratingTopicProblem] = useState(false);
+  const [topicProblemError, setTopicProblemError] = useState<string | null>(null);
+  const [topicDropdownOpen, setTopicDropdownOpen] = useState(false);
+  const workspaceTopic = searchParams.get('topic') || problem?.topic || '';
+  const workspaceSubtopic = searchParams.get('subtopic') || problem?.subtopic || '';
+  const topicProblems = workspaceTopic && workspaceSubtopic
+    ? problemsList.filter((item) => item.topic?.trim().toLowerCase() === workspaceTopic.trim().toLowerCase() && item.subtopic?.trim().toLowerCase() === workspaceSubtopic.trim().toLowerCase())
+    : [];
+  const siblingProblems = problem && !topicProblems.some((item) => item.id === problem.id)
+    ? [...topicProblems, problem]
+    : topicProblems;
+  const generateTopicProblem = async () => {
+    if (!workspaceTopic || !workspaceSubtopic || isGeneratingTopicProblem) return;
+    setIsGeneratingTopicProblem(true);
+    setTopicProblemError(null);
+    try {
+      const token = localStorage.getItem('token');
+      const prompt = `Pattern: "${workspaceTopic}"\nSubtopic: "${workspaceSubtopic}"\nGenerate a unique, high-quality coding problem specifically for this pattern and subtopic. Provide starter code in Python, JavaScript, Java, and C++, with comprehensive test cases.`;
+      const response = await fetch(`${apiUrl}/problems/ai-create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prompt, pattern: workspaceTopic, subtopic: workspaceSubtopic }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Could not create a problem. Please try again.');
+      const id = result.problemId || result.id || result.slug;
+      if (!id) throw new Error('The new problem is missing its identifier.');
+      setProblemsList((current) => [...current, { id, title: result.problemTitle, difficulty: result.difficulty, topic: result.topic || workspaceTopic, subtopic: result.subtopic || workspaceSubtopic }]);
+      router.push(`/workspace/${id}?${new URLSearchParams({ topic: workspaceTopic, subtopic: workspaceSubtopic }).toString()}`);
+    } catch (generationError) {
+      setTopicProblemError(generationError instanceof Error ? generationError.message : 'Could not create a problem. Please try again.');
+    } finally {
+      setIsGeneratingTopicProblem(false);
+    }
+  };
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
   const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const topicDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Click outside listener to close search dropdown switcher
+  // Close either workspace dropdown when the user clicks outside it.
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setSearchDropdownOpen(false);
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setSearchDropdownOpen(false);
+      if (topicDropdownRef.current && !topicDropdownRef.current.contains(event.target as Node)) setTopicDropdownOpen(false);
     };
 
-    if (searchDropdownOpen) {
+    if (searchDropdownOpen || topicDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [searchDropdownOpen]);
+  }, [searchDropdownOpen, topicDropdownOpen]);
 
   // Fetch problems for workspace switcher
   useEffect(() => {
     const fetchProblems = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`${apiUrl}/problems`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const uniqueMap = new Map();
-          if (Array.isArray(data)) {
-            data.forEach((p: any) => {
-              if (p && p.id && !uniqueMap.has(p.id)) {
-                uniqueMap.set(p.id, p);
+        const [problemsResponse, curriculumResponse] = await Promise.all([
+          fetch(`${apiUrl}/problems`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${apiUrl}/problems/curriculum/subtopics`),
+        ]);
+        const [savedProblems, curriculum] = await Promise.all([
+          problemsResponse.ok ? problemsResponse.json() : Promise.resolve([]),
+          curriculumResponse.ok ? curriculumResponse.json() : Promise.resolve([]),
+        ]);
+        const uniqueMap = new Map<string, any>();
+        if (Array.isArray(curriculum)) {
+          curriculum.forEach((entry: any) => {
+            (entry.problemAssignments ?? []).forEach((assignment: any) => {
+              const curatedProblem = assignment.problem;
+              if (curatedProblem?.id && !uniqueMap.has(curatedProblem.id)) {
+                uniqueMap.set(curatedProblem.id, { ...curatedProblem, topic: entry.topic, subtopic: entry.title });
               }
             });
-          }
-          setProblemsList(Array.from(uniqueMap.values()));
+          });
         }
+        if (Array.isArray(savedProblems)) {
+          savedProblems.forEach((saved: any) => {
+            if (saved?.id) uniqueMap.set(saved.id, { ...uniqueMap.get(saved.id), ...saved });
+          });
+        }
+        setProblemsList(Array.from(uniqueMap.values()));
       } catch (err) {
         console.error(err);
       }
@@ -1125,7 +1171,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
       <div className="flex-1 flex items-center justify-center bg-[#FAF8F5] text-stone-600 font-workspace">
         <div className="flex flex-col items-center gap-3">
           <RefreshCw className="animate-spin text-amber-600 w-8 h-8" />
-          <p className="text-sm font-workspace">Loading coding sandbox...</p>
+          <p className="text-sm font-workspace">Opening your coding workspace...</p>
         </div>
       </div>
     );
@@ -1152,11 +1198,11 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
   }
 
   return (
-    <div className="pf-workspace min-h-screen lg:h-screen flex flex-col overflow-hidden bg-[#f8f5ed] text-[#17263a]">
+    <div className="pf-workspace h-dvh lg:h-screen flex flex-col overflow-hidden bg-[#f8f5ed] text-[#17263a]">
       {/* Workspace Header */}
       <header className={`shrink-0 border-b-2 px-4 py-4 sm:px-6 ${isOaMode ? 'border-orange-200 bg-[#fff7df]' : 'border-[#e8e1d3] bg-[#fffdf8]'}`}>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
             <span
               onClick={() => router.push('/dashboard')}
               className="shrink-0 cursor-pointer text-lg font-black tracking-tight text-[#17263a] transition hover:opacity-85"
@@ -1164,14 +1210,17 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
               Pattern<span className="text-[#e67b1f]">Forge</span>
             </span>
             <span className="rounded-full border-2 border-[#f6d89b] bg-[#fff1d5] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#c56a17]">
-              {isOaMode ? 'OA mode' : 'AI mode'}
+              {isOaMode ? 'Timed assessment' : 'Practice mode'}
             </span>
             <div className="hidden h-5 w-px bg-[#e8e1d3] sm:block"></div>
 
             <div ref={dropdownRef} className="relative min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setSearchDropdownOpen(!searchDropdownOpen)}
+                  onClick={() => {
+                    setSearchDropdownOpen((open) => !open);
+                    setTopicDropdownOpen(false);
+                  }}
                   className="flex max-w-[48vw] items-center gap-1 truncate rounded-xl border-2 border-transparent px-2 py-1.5 text-left text-sm font-black text-[#17263a] transition hover:border-[#f0d7a3] hover:bg-[#fff9ee] sm:max-w-none"
                 >
                   <span className="truncate">{problem.title}</span>
@@ -1218,6 +1267,57 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                 </div>
               )}
             </div>
+            {workspaceTopic && workspaceSubtopic && (
+              <div ref={topicDropdownRef} className="relative w-full min-w-0 sm:w-auto sm:max-w-[min(42vw,420px)]">
+                <button
+                  onClick={() => {
+                    setTopicDropdownOpen((open) => !open);
+                    setSearchDropdownOpen(false);
+                  }}
+                  aria-expanded={topicDropdownOpen}
+                  className="flex w-full min-w-0 items-center justify-between gap-2 rounded-xl border-2 border-[#e8e1d3] bg-white px-3 py-2 text-left text-xs font-bold text-slate-700 transition hover:border-amber-300 hover:bg-[#fffaf0] sm:w-auto"
+                >
+                  <span className="min-w-0 truncate"><span className="text-slate-400">{workspaceTopic}</span><span className="mx-1.5 text-slate-300">/</span>{workspaceSubtopic}</span>
+                  <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${topicDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {topicDropdownOpen && (
+                  <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[min(90vw,340px)] overflow-hidden rounded-2xl border-2 border-[#e8e1d3] bg-[#fffdf8] p-3 shadow-xl sm:w-80">
+                    <div className="mb-2 border-b border-[#eee7da] px-1 pb-2">
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Topic</p>
+                      <p className="truncate text-xs font-bold text-slate-700">{workspaceTopic}</p>
+                      <p className="mt-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Subtopic</p>
+                      <p className="truncate text-sm font-black text-[#17263a]">{workspaceSubtopic}</p>
+                    </div>
+                    <p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Problems in this subtopic</p>
+                    <div className="max-h-56 space-y-1 overflow-y-auto">
+                      {siblingProblems.map((sibling) => (
+                        <button
+                          key={sibling.id}
+                          onClick={() => {
+                            setTopicDropdownOpen(false);
+                            router.push(`/workspace/${sibling.id}?${new URLSearchParams({ topic: workspaceTopic, subtopic: workspaceSubtopic }).toString()}`);
+                          }}
+                          className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-xs transition ${sibling.id === problem.id ? 'bg-amber-50 font-bold text-amber-900' : 'text-slate-700 hover:bg-[#fff8e9]'}`}
+                        >
+                          <span className="min-w-0 truncate">{sibling.title}</span>
+                          {sibling.difficulty && <span className="shrink-0 text-[9px] font-bold uppercase text-slate-400">{sibling.difficulty}</span>}
+                        </button>
+                      ))}
+                      {siblingProblems.length === 0 && <p className="px-3 py-2 text-xs text-slate-400">No problems in this subtopic yet.</p>}
+                    </div>
+                    <button
+                      onClick={generateTopicProblem}
+                      disabled={isGeneratingTopicProblem}
+                      className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-amber-600 bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-2 text-xs font-bold text-slate-950 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      <Sparkles className={`h-3.5 w-3.5 ${isGeneratingTopicProblem ? 'animate-pulse' : ''}`} />
+                      {isGeneratingTopicProblem ? 'Creating problem…' : 'Generate problem'}
+                    </button>
+                    {topicProblemError && <p role="alert" className="mt-2 text-xs font-medium text-rose-700">{topicProblemError}</p>}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:gap-3">
@@ -1278,7 +1378,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
               className="flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-emerald-700 bg-emerald-500 px-3 py-2 text-xs font-black uppercase tracking-wide text-white shadow-sm transition active:translate-y-[2px]"
             >
               <Award className="w-3.5 h-3.5" />
-              <span>{isEvaluatingOa ? 'Evaluating...' : 'Finish OA & View Report'}</span>
+              <span>{isEvaluatingOa ? 'Reviewing your answers...' : 'Finish assessment & view results'}</span>
             </button>}
           </div>
         </div>
@@ -1287,9 +1387,13 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
       {/* Main Workspace split */}
       <main
         ref={mainRef}
-        className="relative flex-1 min-h-0 min-w-0 overflow-hidden lg:grid lg:grid-cols-[1.08fr_1.32fr]"
+        className="relative flex-1 min-h-0 min-w-0 overflow-y-auto lg:overflow-hidden lg:grid lg:grid-cols-[1.08fr_1.32fr]"
         style={{ gridTemplateColumns: `${leftPct}% 1fr` }}
       >
+        <div className="sticky top-0 z-30 flex shrink-0 gap-2 border-b border-[#e8e1d3] bg-[#fffdf8] p-2 lg:hidden">
+          <button onClick={() => setMobileWorkspacePane('problem')} className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold ${mobileWorkspacePane === 'problem' ? 'bg-amber-100 text-amber-900' : 'bg-white text-slate-600'}`}>Problem</button>
+          <button onClick={() => setMobileWorkspacePane('code')} className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold ${mobileWorkspacePane === 'code' ? 'bg-amber-100 text-amber-900' : 'bg-white text-slate-600'}`}>Code editor</button>
+        </div>
         {/* Vertical resize handle: description | editor (desktop grid only) */}
         <div
           role="separator"
@@ -1323,7 +1427,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
           </span>
         </div>
         {/* Left pane: Details & Analytics */}
-        <section className="flex min-h-[52vh] w-full min-h-0 flex-col overflow-hidden border-b-2 border-[#e8e1d3] bg-[#fffdf8] lg:min-h-0 lg:border-b-0 lg:border-r-2">
+        <section className={`${mobileWorkspacePane === 'problem' ? 'flex' : 'hidden'} min-h-[62vh] w-full min-h-0 flex-col overflow-hidden border-b-2 border-[#e8e1d3] bg-[#fffdf8] lg:flex lg:min-h-0 lg:border-b-0 lg:border-r-2`}>
           {/* Left Tab Bar Selector */}
           <div className="flex min-h-12 shrink-0 items-center gap-4 overflow-x-auto border-b-2 border-[#e8e1d3] bg-[#fff8e9] px-4 text-xs font-bold text-slate-500 sm:px-6">
             <button
@@ -1357,7 +1461,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                   </div>
                   <div>
                     <h3 className="font-workspace text-sm font-bold text-stone-900">AI Coding Coach</h3>
-                    <p className="text-[10px] text-stone-500 font-workspace">Interactive Socratic guidance & hints</p>
+                    <p className="text-[10px] text-stone-500 font-workspace">Hints to help you work through the problem</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1393,7 +1497,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                   <div className="flex justify-start">
                     <div className="bg-white border border-stone-200 rounded-2xl px-4 py-3 text-xs text-stone-500 flex items-center gap-2.5 animate-pulse shadow-2xs">
                       <RefreshCw className="animate-spin w-3.5 h-3.5 text-amber-500" />
-                      <span className="font-medium font-workspace">Synthesizing response...</span>
+                      <span className="font-medium font-workspace">Preparing a hint...</span>
                     </div>
                   </div>
                 )}
@@ -1580,7 +1684,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
         </section>
 
         {/* Right pane: Editor & Console */}
-        <section ref={rightPaneRef} className={`flex min-h-[70vh] w-full min-h-0 flex-col overflow-hidden border-t-2 lg:min-h-0 lg:border-t-0 ${isOaMode ? 'border-orange-200 bg-[#1d2b3a]' : 'border-[#e8e1d3] bg-[#17263a]'}`}>
+        <section ref={rightPaneRef} className={`${mobileWorkspacePane === 'code' ? 'flex' : 'hidden'} min-h-[75vh] w-full min-h-0 flex-col overflow-hidden border-t-2 lg:flex lg:min-h-0 lg:border-t-0 ${isOaMode ? 'border-orange-200 bg-[#1d2b3a]' : 'border-[#e8e1d3] bg-[#17263a]'}`}>
           {currentPhase !== 'CODING_UNLOCKED' &&
             currentPhase !== 'SUBMITTED' &&
             currentPhase !== 'ANALYZED' &&
@@ -1595,7 +1699,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                 <div className="flex items-center justify-between border-b border-stone-800 pb-4 mb-4">
                   <div className="flex items-center gap-2.5">
                     <span className="text-[10px] bg-amber-500/10 text-amber-500 border border-amber-500/30 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
-                      Cognitive Thinking Wizard
+                      Guided problem solving
                     </span>
                     <button
                       onClick={() => {
@@ -1631,10 +1735,10 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                     <div className="space-y-2">
                       <h3 className="font-workspace text-2xl font-bold text-white flex items-center gap-2">
                         <BookOpen className="w-6 h-6 text-amber-500" />
-                        <span>Phase 1: Deep Comprehension</span>
+                        <span>Step 1: Understand the problem</span>
                       </h3>
                       <p className="text-stone-400 text-xs leading-relaxed font-normal">
-                        Analyze the problem description, target examples, and input scopes. Read carefully to understand basic invariants.
+                        Read the problem, examples, and input limits carefully. Note the details that may affect your solution.
                       </p>
                     </div>
 
@@ -1653,8 +1757,8 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                         <span className="absolute text-xl font-mono font-bold text-amber-500">{readingTimeRemaining}s</span>
                       </div>
                       <div className="space-y-1">
-                        <strong className="block text-sm text-white">Soft Lock Reading Countdown</strong>
-                        <span className="text-xs text-stone-500">Wait for the countdown to complete to unlock approach design.</span>
+                        <strong className="block text-sm text-white">Reading time</strong>
+                        <span className="text-xs text-stone-500">The approach step opens when the countdown ends.</span>
                       </div>
 
                       {readingTimeRemaining === 0 ? (
@@ -1695,10 +1799,10 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                     <div className="space-y-1">
                       <h3 className="font-workspace text-2xl font-bold text-white flex items-center gap-2">
                         <Sparkles className="w-6 h-6 text-amber-500 animate-bounce" />
-                        <span>Phase 2: Approach Design</span>
+                        <span>Step 2: Plan your approach</span>
                       </h3>
                       <p className="text-stone-400 text-xs leading-normal font-normal">
-                        Outline your algorithmic flow and complexity thresholds. Setting these targets unlocks coding mode.
+                        Describe your solution step by step. Think about how long it will take and how much memory it will use.
                       </p>
                     </div>
 
@@ -1834,7 +1938,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                             className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center gap-2 animate-pulse"
                           >
                             <Unlock className="w-4 h-4 fill-current" />
-                            <span>Unlock Sandbox Editor & Start Coding!</span>
+                            <span>Open Code Editor & Start Coding</span>
                           </button>
                           <button
                             onClick={submitApproachEvaluation}
@@ -1854,7 +1958,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                           {isEvaluatingApproach ? (
                             <>
                               <RefreshCw className="animate-spin w-4 h-4" />
-                              <span>Analyzing Proposed Approach...</span>
+                              <span>Reviewing your plan...</span>
                             </>
                           ) : (
                             <>
@@ -1872,7 +1976,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
 
               {/* Bottom Brand notice */}
               <div className="text-[10px] text-stone-600 text-center font-mono border-t border-stone-900 pt-4 mt-8 flex items-center justify-center gap-1 select-none">
-                <span>⚡ Enforced by PatternForge AI thinking pipeline engine.</span>
+                <span>⚡ Take a moment to understand the problem before coding.</span>
               </div>
             </div>
 
@@ -2019,10 +2123,10 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                                 <div className="min-w-0">
                                   <p className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
                                     <AlertTriangle className="w-3.5 h-3.5" />
-                                    No test cases seeded for this problem
+                                    No test cases are available for this problem yet
                                   </p>
                                   <p className="text-[10px] text-stone-500 leading-snug mt-0.5">
-                                    Seed them once to enable submission verdicts. One argument per line, JSON format (e.g. [&quot;h&quot;,&quot;e&quot;,&quot;l&quot;,&quot;l&quot;,&quot;o&quot;]).
+                                    Add test cases to check your solution. Enter one argument per line in JSON format (for example, [&quot;h&quot;,&quot;e&quot;,&quot;l&quot;,&quot;l&quot;,&quot;o&quot;]).
                                   </p>
                                 </div>
                                 <button
@@ -2035,7 +2139,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                                     : 'bg-amber-500/15 text-amber-400 border border-amber-500/40 hover:bg-amber-500/25'
                                     }`}
                                 >
-                                  {showCaseSeeder ? 'Close' : 'Seed Test Cases'}
+                                  {showCaseSeeder ? 'Close' : 'Add Test Cases'}
                                 </button>
                               </div>
 
@@ -2094,7 +2198,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                                       disabled={seedCasesMutation.isPending || seedCases.length === 0}
                                       className="px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:bg-stone-800 disabled:text-stone-500 transition flex items-center gap-1.5"
                                     >
-                                      {seedCasesMutation.isPending ? 'Seeding...' : 'Save Test Cases'}
+                                      {seedCasesMutation.isPending ? 'Saving...' : 'Save Test Cases'}
                                     </button>
                                   </div>
 
@@ -2102,7 +2206,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                                     <p className="text-[10px] text-red-400">{(seedCasesMutation.error as Error).message}</p>
                                   )}
                                   {seedCasesMutation.isSuccess && (
-                                    <p className="text-[10px] text-emerald-400">Test cases seeded successfully.</p>
+                                    <p className="text-[10px] text-emerald-400">Test cases saved.</p>
                                   )}
                                 </div>
                               )}
@@ -2208,7 +2312,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                       {isCompiling ? (
                         <div className="flex items-center gap-2 text-stone-400 animate-pulse">
                           <RefreshCw className="animate-spin w-4 h-4 text-amber-500" />
-                          <span>Sandbox executing test cases...</span>
+                          <span>Running your code against the test cases...</span>
                         </div>
                       ) : verdict ? (
                         <div className="space-y-4 h-full flex flex-col font-workspace">
@@ -2336,7 +2440,7 @@ export default function WorkspacePage({ params: paramsPromise }: { params: Promi
                           )}
                         </div>
                       ) : (
-                        <p className="text-stone-500 text-xs italic">Submit code or click Run Code to view evaluation compile logs.</p>
+                        <p className="text-stone-500 text-xs italic">Run your code or submit it to see the result here.</p>
                       )}
                     </div>
                   )}

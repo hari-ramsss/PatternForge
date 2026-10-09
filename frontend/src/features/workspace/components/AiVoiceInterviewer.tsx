@@ -26,7 +26,7 @@ export default function AiVoiceInterviewer({
   const [isFinished, setIsFinished] = useState(false);
   const recognitionRef = useRef<any>(null);
 
-  const initialQuestion = `Hello! I'm your ${company} AI Technical Interviewer. I've analyzed your ${language} solution for "${problemTitle}". Can you walk me through your overall approach and explain the time complexity of your algorithm?`;
+  const initialQuestion = `Hello! Let's practice a ${company} interview. Looking at your ${language} solution for "${problemTitle}", can you explain your approach and how long you expect it to take?`;
 
   useEffect(() => {
     // Initialize interview with initial AI question
@@ -136,7 +136,7 @@ export default function AiVoiceInterviewer({
 
     // 4. Default contextual follow-up
     if (currentQuestionCount === 1) {
-      return `Got it! Can you elaborate on the time complexity of your approach? What specific loop or lookup operation determines its Big-O performance?`;
+      return `Got it. Which part of your approach has the biggest effect on how long it takes?`;
     }
 
     return `Thank you for sharing that breakdown! What edge cases would you double-check before shipping this solution into production?`;
@@ -154,7 +154,7 @@ export default function AiVoiceInterviewer({
     setQuestionCount(nextCount);
 
     if (nextCount >= 4) {
-      const closingMsg = `Thank you for walking me through your thought process! That concludes our 10-minute technical interview round. I am now compiling your candidate report card.`;
+      const closingMsg = `Thanks for explaining your approach. That's the end of this practice interview. I'm putting together your feedback now.`;
       setMessages((prev) => [...prev, { role: 'interviewer', text: closingMsg }]);
       speakText(closingMsg);
       setIsFinished(true);
@@ -179,7 +179,7 @@ export default function AiVoiceInterviewer({
             <Bot className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="font-workspace text-sm font-bold text-stone-100">{company} AI Technical Voice Interviewer</h4>
+            <h4 className="font-workspace text-sm font-bold text-stone-100">{company} interview practice</h4>
             <span className="text-[10px] text-stone-400 font-mono">10-Minute Interactive Technical Q&A Round</span>
           </div>
         </div>

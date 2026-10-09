@@ -105,10 +105,10 @@ export const SkillConstellationTree: React.FC<SkillConstellationTreeProps> = ({
         <div>
           <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-400" />
-            Pattern Skill Constellation Map
+            Coding Patterns
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Data-driven prerequisite map • Click any pattern node to inspect subtopics or start practice
+            Choose a pattern to explore its subtopics and practice problems
           </p>
         </div>
 

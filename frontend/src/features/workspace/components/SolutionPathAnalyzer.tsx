@@ -20,7 +20,7 @@ export default function SolutionPathAnalyzer({
     return (
       <div className="p-6 bg-stone-900/60 border border-stone-850 rounded-2xl text-center text-stone-500 font-workspace text-xs">
         <Activity className="w-8 h-8 mx-auto mb-2 text-stone-600 animate-pulse" />
-        <p>Write or run your solution code to analyze Big-O efficiency curves & allocation invariants.</p>
+        <p>Write some code to get a quick estimate of its time and memory use.</p>
       </div>
     );
   }
@@ -54,10 +54,10 @@ export default function SolutionPathAnalyzer({
       <div className="flex items-center justify-between border-b border-stone-850 pb-3">
         <div className="flex items-center gap-2">
           <Cpu className="w-5 h-5 text-amber-500 animate-pulse" />
-          <h4 className="font-workspace text-sm font-bold text-stone-100">Solution Path Analyzer</h4>
+          <h4 className="font-workspace text-sm font-bold text-stone-100">Code Efficiency Check</h4>
         </div>
         <span className="text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded">
-          Static AST Analysis
+          Quick estimate
         </span>
       </div>
 
@@ -65,7 +65,7 @@ export default function SolutionPathAnalyzer({
       <div className="grid grid-cols-2 gap-3">
         {/* Time Complexity Card */}
         <div className="bg-[#1E1E1C] p-3.5 rounded-xl border border-stone-800 space-y-1.5">
-          <span className="text-[9px] uppercase font-bold text-stone-400 tracking-wider block">Time Complexity Curve</span>
+          <span className="text-[9px] uppercase font-bold text-stone-400 tracking-wider block">Time complexity</span>
           <div className="flex items-baseline justify-between">
             <span className="text-lg font-mono font-bold text-amber-400">{detectedTime}</span>
             <span className="text-[10px] text-stone-500 font-mono">Target: {optimalTime}</span>
@@ -81,7 +81,7 @@ export default function SolutionPathAnalyzer({
 
         {/* Space Complexity Card */}
         <div className="bg-[#1E1E1C] p-3.5 rounded-xl border border-stone-800 space-y-1.5">
-          <span className="text-[9px] uppercase font-bold text-stone-400 tracking-wider block">Memory Auxiliary Allocations</span>
+          <span className="text-[9px] uppercase font-bold text-stone-400 tracking-wider block">Space complexity</span>
           <div className="flex items-baseline justify-between">
             <span className="text-lg font-mono font-bold text-purple-400">{detectedSpace}</span>
             <span className="text-[10px] text-stone-500 font-mono">Target: {optimalSpace}</span>
@@ -98,15 +98,15 @@ export default function SolutionPathAnalyzer({
 
       {/* Allocation Invariants & Diagnostics */}
       <div className="space-y-2">
-        <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block">Allocation Invariants</span>
+        <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block">Code checks</span>
         
         {hasRedundantAllocations && (
           <div className="p-3 bg-amber-950/30 border border-amber-800/40 rounded-xl text-xs text-amber-300 flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <strong className="block font-bold">Redundant Object Allocations Detected</strong>
+              <strong className="block font-bold">Extra list copies detected</strong>
               <p className="text-[11px] text-amber-400/80 leading-relaxed mt-0.5">
-                Avoid re-creating list slices or dynamic arrays inside loop iterations to prevent GC pressure.
+                Repeatedly copying lists inside a loop can slow your solution down.
               </p>
             </div>
           </div>
@@ -116,9 +116,9 @@ export default function SolutionPathAnalyzer({
           <div className="p-3 bg-stone-900 border border-stone-800 rounded-xl text-xs text-stone-300 flex items-start gap-2.5">
             <Zap className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <strong className="block font-bold text-stone-200">Sort Comparison Bound (O(N log N))</strong>
+              <strong className="block font-bold text-stone-200">Sorting takes O(N log N)</strong>
               <p className="text-[11px] text-stone-400 leading-relaxed mt-0.5">
-                Sorting costs O(N log N) time. Check if a Hash Map or Frequency Array can reduce time to O(N).
+                A hash map or frequency array may solve this in O(N) time, depending on the problem.
               </p>
             </div>
           </div>
@@ -128,9 +128,9 @@ export default function SolutionPathAnalyzer({
           <div className="p-3 bg-emerald-950/20 border border-emerald-800/30 rounded-xl text-xs text-emerald-300 flex items-start gap-2.5">
             <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <div>
-              <strong className="block font-bold">Optimal Allocation Boundary</strong>
+              <strong className="block font-bold">No extra list copies spotted</strong>
               <p className="text-[11px] text-emerald-400/80 leading-relaxed mt-0.5">
-                No redundant slice allocations found. Your code respects single-pass memory constraints.
+                Your code appears to use memory efficiently. This quick check may miss some cases.
               </p>
             </div>
           </div>

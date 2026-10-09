@@ -53,13 +53,13 @@ export default function OaReportPage() {
       <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center font-sans text-stone-600">
         <div className="bg-white border border-[#EFECE6] p-8 rounded-2xl shadow-sm text-center space-y-4 max-w-sm">
           <Award className="w-10 h-10 text-amber-600 mx-auto animate-bounce" />
-          <h3 className="font-sans text-lg font-bold text-stone-900">No Assessment Session Found</h3>
-          <p className="text-xs text-stone-500">Launch a corporate assessment from the Technical Online Assessment Arena to generate an evaluation report.</p>
+          <h3 className="font-sans text-lg font-bold text-stone-900">No practice results yet</h3>
+          <p className="text-xs text-stone-500">Start an interview practice assessment to get feedback on your solution.</p>
           <button
             onClick={() => router.push('/interview-arena')}
             className="w-full py-2.5 bg-stone-900 text-amber-400 font-bold rounded-xl text-xs uppercase tracking-wider"
           >
-            Go to Assessment Arena
+            Go to Interview Practice
           </button>
         </div>
       </div>
@@ -89,12 +89,12 @@ export default function OaReportPage() {
             className="flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-stone-900 transition"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Arena</span>
+            <span>Practice</span>
           </button>
           <div className="h-4 w-px bg-stone-300"></div>
           <span className="font-sans text-lg font-bold text-stone-900 tracking-tight flex items-center gap-2">
             <Award className="w-5 h-5 text-amber-600" />
-            <span>Technical Evaluation Report Card</span>
+            <span>Interview Practice Results</span>
           </span>
         </div>
 
@@ -113,27 +113,27 @@ export default function OaReportPage() {
           <div className="space-y-2">
             <div className="flex items-center justify-center md:justify-start gap-2 text-xs text-stone-500 font-mono">
               <Building2 className="w-4 h-4 text-amber-600" />
-              <span>{report.company} Corporate Technical Online Assessment</span>
+              <span>{report.company} coding assessment</span>
             </div>
             <h1 className="font-sans text-3xl font-bold text-stone-900">{report.problemTitle}</h1>
             <p className="text-xs text-stone-600 max-w-xl leading-relaxed">
-              Automated AI candidate evaluation based on runtime correctness, Big-O efficiency curves, code cleanliness, and vocal reasoning transcript.
+              Review your results for correctness, time and space complexity, code clarity, and your spoken explanation.
             </p>
           </div>
 
           <div className="flex flex-col items-center md:items-end gap-2 shrink-0">
-            <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider">Hiring Decision Verdict</span>
+            <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider">Interview feedback</span>
             <span className={`px-4 py-2 rounded-2xl font-sans text-lg font-bold shadow-md uppercase tracking-wider border ${getVerdictBadgeClass(report.hiringVerdict)}`}>
               {report.hiringVerdict}
             </span>
-            <span className="text-xs font-mono font-bold text-stone-700">Candidate Score: {report.overallScore}/100</span>
+            <span className="text-xs font-mono font-bold text-stone-700">Overall score: {report.overallScore}/100</span>
           </div>
         </div>
 
         {/* 4 Performance Metric Gauges */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white p-4 rounded-2xl border border-[#EFECE6] shadow-2xs space-y-1 text-center">
-            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Accuracy Pass Rate</span>
+            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Tests passed</span>
             <span className="text-2xl font-mono font-bold text-emerald-600">{report.accuracyScore}%</span>
             <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden mt-1">
               <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${report.accuracyScore}%` }}></div>
@@ -141,7 +141,7 @@ export default function OaReportPage() {
           </div>
 
           <div className="bg-white p-4 rounded-2xl border border-[#EFECE6] shadow-2xs space-y-1 text-center">
-            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Big-O Efficiency</span>
+            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Time complexity</span>
             <span className="text-2xl font-mono font-bold text-amber-600">{report.efficiencyScore}%</span>
             <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden mt-1">
               <div className="h-full bg-amber-500 rounded-full" style={{ width: `${report.efficiencyScore}%` }}></div>

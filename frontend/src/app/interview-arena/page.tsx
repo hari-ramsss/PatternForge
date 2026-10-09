@@ -37,9 +37,9 @@ const CORPORATE_OAS: CorporateOa[] = [
     badgeColor: 'bg-red-50 text-red-700 border-red-200',
     durationMinutes: 45,
     drillsCount: 2,
-    description: 'Strict algorithmic optimization assessment testing O(N) boundary invariants, memory allocations, and edge case guards.',
+    description: 'Timed coding practice focused on efficient solutions, edge cases, and careful use of memory.',
     targetProblemId: 'two-sum',
-    targetProblemTitle: 'Single-Pass Complement Invariants',
+    targetProblemTitle: 'Two Sum',
     vocalMandatory: false,
   },
   {
@@ -49,9 +49,9 @@ const CORPORATE_OAS: CorporateOa[] = [
     badgeColor: 'bg-amber-50 text-amber-800 border-amber-200',
     durationMinutes: 45,
     drillsCount: 2,
-    description: 'Technical evaluation & Leadership Principles reasoning. Spoken vocal thought process is evaluated.',
+    description: 'Practice coding while explaining your approach, with questions inspired by Amazon interviews.',
     targetProblemId: 'valid-anagram',
-    targetProblemTitle: 'Frequency Map Balance Check',
+    targetProblemTitle: 'Valid Anagram',
     vocalMandatory: true,
   },
   {
@@ -61,9 +61,9 @@ const CORPORATE_OAS: CorporateOa[] = [
     badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
     durationMinutes: 35,
     drillsCount: 2,
-    description: 'High-speed coding sprint mode emphasizing rapid execution, clean syntax, and zero compilation mistakes.',
+    description: 'Fast-paced coding practice focused on clear solutions and thorough testing.',
     targetProblemId: 'contains-duplicate',
-    targetProblemTitle: 'Duplicate Detection Invariants',
+    targetProblemTitle: 'Contains Duplicate',
     vocalMandatory: false,
   },
   {
@@ -73,9 +73,9 @@ const CORPORATE_OAS: CorporateOa[] = [
     badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
     durationMinutes: 45,
     drillsCount: 2,
-    description: 'Algorithmic design assessment covering prefix sums, arrays, and sliding window boundaries.',
+    description: 'Practice array problems using prefix sums and sliding windows.',
     targetProblemId: 'subarray-sums-divisible-by-k',
-    targetProblemTitle: 'Prefix Remainder Frequency Sweep',
+    targetProblemTitle: 'Subarray Sums Divisible by K',
     vocalMandatory: false,
   },
 ];
@@ -96,7 +96,7 @@ export default function InterviewArenaPage() {
   return (
     <div className="h-screen overflow-hidden bg-[#f8f5ed] text-[#17263a] font-sans selection:bg-amber-500/30 selection:text-amber-900">
       <div className="flex h-full">
-        <PatternForgeNavigation statusLabel="Assessment mode" statusValue="OA" />
+        <PatternForgeNavigation statusLabel="Practice mode" statusValue="Timed" />
         <aside className="hidden">
           <div className="space-y-8">
             <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2.5 px-1 text-left">
@@ -115,7 +115,7 @@ export default function InterviewArenaPage() {
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden pt-16 lg:pt-0">
           <header className="flex shrink-0 items-center justify-between border-b-2 border-[#e8e1d3] bg-[#fffdf8]/90 px-5 py-4 backdrop-blur-xl sm:px-8">
-            <div><h1 className="flex items-center gap-2 text-lg font-black tracking-tight text-[#17263a]"><Building2 className="h-5 w-5 text-[#e67b1f]" />Interview Arena</h1><p className="text-xs font-medium text-slate-400">Practice under the pressure of a real technical screen</p></div>
+          <div><h1 className="flex items-center gap-2 text-lg font-black tracking-tight text-[#17263a]"><Building2 className="h-5 w-5 text-[#e67b1f]" />Interview Practice</h1><p className="text-xs font-medium text-slate-400">Practice coding with a timer, like a real interview</p></div>
             <button onClick={() => router.push('/dashboard')} className="hidden items-center gap-1.5 rounded-2xl border-2 border-b-4 border-[#e3d8c8] bg-white px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-slate-700 transition-all hover:bg-[#fffaf0] active:translate-y-[2px] active:border-b-2 sm:flex"><ArrowLeft className="h-4 w-4" />Dashboard</button>
           </header>
 
@@ -124,16 +124,16 @@ export default function InterviewArenaPage() {
             <div className="mx-auto max-w-5xl space-y-3 rounded-3xl border-2 border-b-4 border-[#e8e1d3] bg-[#fffdf8] p-5">
               <div className="flex items-center gap-2">
                 <Award className="w-6 h-6 text-amber-600" />
-                <h1 className="text-xl font-black tracking-tight text-[#17263a]">Company Technical Coding Assessments</h1>
+                <h1 className="text-xl font-black tracking-tight text-[#17263a]">Company interview practice</h1>
               </div>
               <p className="max-w-2xl text-xs leading-relaxed text-slate-500">
-                Simulate realistic corporate Online Assessments (OAs). Hint locks, strict time constraints, and AI candidate report cards with hiring decision verdicts (*Strong Hire*, *Hire*, *Lean Hire*, *Needs Practice*).
+                Try timed coding assessments inspired by company interviews. Hints stay hidden while you solve; afterward, review feedback on your code and approach.
               </p>
             </div>
 
             {/* Assessment Card Selectors */}
             <div className="mx-auto max-w-5xl space-y-4">
-              <h3 className="text-base font-black tracking-tight text-[#17263a]">Select Corporate Assessment Environment</h3>
+              <h3 className="text-base font-black tracking-tight text-[#17263a]">Choose a company practice set</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {CORPORATE_OAS.map((oa) => {
@@ -152,10 +152,10 @@ export default function InterviewArenaPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-2xl">{oa.logo}</span>
-                            <h4 className="text-lg font-black tracking-tight text-[#17263a]">{oa.company} OA</h4>
+                            <h4 className="text-lg font-black tracking-tight text-[#17263a]">{oa.company} practice</h4>
                           </div>
                           <span className={`text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-full border ${oa.badgeColor}`}>
-                            {oa.durationMinutes} Min Test
+                            {oa.durationMinutes} min
                           </span>
                         </div>
 
@@ -164,11 +164,11 @@ export default function InterviewArenaPage() {
 
                       <div className="flex items-center justify-between border-t-2 border-[#eee7da] pt-3 text-[11px] font-mono text-slate-500">
                         <span className="flex items-center gap-1">
-                          <Lock className="w-3.5 h-3.5 text-amber-600" /> Hints & Solutions Locked
+                          <Lock className="w-3.5 h-3.5 text-amber-600" /> Hints hidden during practice
                         </span>
                         {oa.vocalMandatory && (
                           <span className="text-amber-700 font-bold flex items-center gap-1">
-                            <Mic className="w-3.5 h-3.5 text-amber-600" /> Voice AI Evaluation
+                            <Mic className="w-3.5 h-3.5 text-amber-600" /> Explain your solution aloud
                           </span>
                         )}
                       </div>
@@ -181,14 +181,14 @@ export default function InterviewArenaPage() {
             {/* Assessment Settings Box */}
             <div className="mx-auto max-w-5xl space-y-4 rounded-2xl border border-[#e8e1d3] bg-[#fffdf8] p-5 font-sans shadow-sm">
               <h3 className="border-b-2 border-[#eee7da] pb-2 text-base font-black text-[#17263a]">
-                Assessment Session Configurator ({selectedOa.company} OA)
+                Assessment options for {selectedOa.company}
               </h3>
 
               <div className="flex items-center justify-between text-xs">
                 <div className="space-y-0.5">
-                  <strong className="block font-bold text-[#17263a]">Enable Real-Time Vocal Reasoning (Voice AI)</strong>
+                  <strong className="block font-bold text-[#17263a]">Include spoken explanations</strong>
                   <p className="text-[11px] text-slate-500">
-                    Transcribes spoken explanations during coding and incorporates communication clarity into your AI Report Card score.
+                    Your explanation is transcribed while you code and included with your feedback.
                   </p>
                 </div>
                 <input
@@ -205,7 +205,7 @@ export default function InterviewArenaPage() {
                   className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-b-4 border-amber-600/70 bg-gradient-to-r from-amber-500 to-amber-400 py-3 text-sm font-black uppercase tracking-wider text-slate-950 transition-all hover:from-amber-400 hover:to-amber-300 active:translate-y-[2px] active:border-b-2"
                 >
                   <Play className="w-4 h-4 fill-current" />
-                  <span>Launch {selectedOa.company} Technical Online Assessment ({selectedOa.durationMinutes} Min)</span>
+                  <span>Start {selectedOa.company} practice ({selectedOa.durationMinutes} min)</span>
                 </button>
               </div>
             </div>

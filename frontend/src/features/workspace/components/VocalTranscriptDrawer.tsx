@@ -83,7 +83,7 @@ export default function VocalTranscriptDrawer({ onTranscriptUpdate }: VocalTrans
       <div className="flex items-center justify-between border-b border-stone-850 pb-2.5">
         <div className="flex items-center gap-2">
           <Volume2 className={`w-4 h-4 ${isListening ? 'text-amber-500 animate-bounce' : 'text-stone-400'}`} />
-          <h4 className="font-workspace text-xs font-bold text-stone-200">Vocal Reasoning Transcript (Voice AI)</h4>
+          <h4 className="font-workspace text-xs font-bold text-stone-200">Spoken explanation</h4>
         </div>
 
         <button
@@ -97,12 +97,12 @@ export default function VocalTranscriptDrawer({ onTranscriptUpdate }: VocalTrans
           {isListening ? (
             <>
               <Mic className="w-3.5 h-3.5" />
-              <span>Recording Voice...</span>
+              <span>Recording...</span>
             </>
           ) : (
             <>
               <MicOff className="w-3.5 h-3.5" />
-              <span>Start Voice Reasoning</span>
+              <span>Explain your approach</span>
             </>
           )}
         </button>
@@ -122,7 +122,7 @@ export default function VocalTranscriptDrawer({ onTranscriptUpdate }: VocalTrans
           <p className="text-emerald-400 leading-snug">"{transcript.trim()}"</p>
         ) : (
           <span className="text-stone-500 italic text-[11px]">
-            {isListening ? 'Speak aloud your thought process... (Voice AI transcribing in real-time)' : 'Click "Start Voice Reasoning" to record spoken solution thought process for AI assessment evaluation.'}
+            {isListening ? 'Talk through your solution. Your words will appear here as text.' : 'Record yourself explaining how you would solve the problem.'}
           </span>
         )}
       </div>

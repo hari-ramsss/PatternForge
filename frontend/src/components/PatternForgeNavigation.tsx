@@ -16,7 +16,7 @@ interface PatternForgeNavigationProps {
 const primaryNavItems = [
   { id: 'journey', label: 'Journey', icon: Compass, path: '/dashboard' },
   { id: 'library', label: 'Pattern Library', icon: BookOpen, path: '/library' },
-  { id: 'oa', label: 'Launch OA Arena', icon: Flag, path: '/interview-arena' },
+  { id: 'oa', label: 'Interview Practice', icon: Flag, path: '/interview-arena' },
   { id: 'mistakes', label: 'Insights', icon: BrainCircuit, path: '/mistakes' },
   { id: 'creator', label: 'AI Problem Creator', icon: Sparkles, path: '/dashboard/creator' },
 ];
